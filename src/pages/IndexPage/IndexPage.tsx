@@ -37,6 +37,12 @@ export const IndexPage: FC = () => {
           header="Application Launch Data"
           footer="These pages help developer to learn more about current launch information"
         >
+          <Link to="/feed">
+            <Cell subtitle="User Feed">Feed</Cell>
+          </Link>
+          <Link to="/events">
+            <Cell subtitle="User Events">Events</Cell>
+          </Link>
           <Link to="/init-data">
             <Cell subtitle="User data, chat information, technical data">Init Data</Cell>
           </Link>

@@ -20,12 +20,10 @@ import {
     Plus as PlusIcon,
     X as XIcon,
     Check,
-    Info,
-    ChevronLeft,
-    ChevronRight
+    Info
 } from 'lucide-react';
 import useEmblaCarousel from 'embla-carousel-react';
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 
 import { Page } from '@/components/Page.tsx';
 
