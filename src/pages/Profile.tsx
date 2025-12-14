@@ -20,9 +20,12 @@ import {
     Plus as PlusIcon,
     X as XIcon,
     Check,
-    Info
+    Info,
+    ChevronLeft,
+    ChevronRight
 } from 'lucide-react';
-import { useState } from 'react';
+import useEmblaCarousel from 'embla-carousel-react';
+import { useState, useCallback, useEffect } from 'react';
 
 import { Page } from '@/components/Page.tsx';
 
@@ -34,6 +37,22 @@ export function Profile() {
     const [newFieldName, setNewFieldName] = useState('');
     const [newFieldValue, setNewFieldValue] = useState('');
     const [newInterest, setNewInterest] = useState('');
+
+    const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
+
+    useEffect(() => {
+        if (!emblaApi) return;
+
+        const onSelect = () => {
+            setCurrentPhotoIndex(emblaApi.selectedScrollSnap());
+        };
+
+        emblaApi.on('select', onSelect);
+
+        return () => {
+            emblaApi.off('select', onSelect);
+        };
+    }, [emblaApi]);
 
     const [profileData, setProfileData] = useState({
         name: 'Sarah',
@@ -152,16 +171,62 @@ export function Profile() {
             <List>
                 {/* Header & Photo Section */}
                 <Section>
-                    <div style={{ padding: 20, textAlign: 'center' }}>
-                        <Avatar
-                            size={96}
-                            src={profileData.photos[currentPhotoIndex]}
-                            style={{ margin: '0 auto 10px' }}
-                            onClick={() => {
-                                // Simple photo rotation
-                                setCurrentPhotoIndex((prev) => (prev + 1) % profileData.photos.length);
-                            }}
-                        />
+                    <div style={{ padding: 0, textAlign: 'center', position: 'relative' }}>
+                        {/* Carousel */}
+                        <div className="embla" ref={emblaRef} style={{ overflow: 'hidden', width: '100%' }}>
+                            <div className="embla__container" style={{ display: 'flex' }}>
+                                {profileData.photos.map((photo, index) => (
+                                    <div className="embla__slide" key={index} style={{ flex: '0 0 100%', minWidth: 0 }}>
+                                        <img
+                                            src={photo}
+                                            alt={`Profile ${index + 1}`}
+                                            style={{
+                                                width: '100%',
+                                                aspectRatio: '4/5', // Premium portrait ratio
+                                                objectFit: 'cover',
+                                                display: 'block'
+                                            }}
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Pagination Dots */}
+                        <div style={{
+                            position: 'absolute',
+                            bottom: 10,
+                            left: 0,
+                            right: 0,
+                            display: 'flex',
+                            justifyContent: 'center',
+                            gap: 6,
+                            zIndex: 10
+                        }}>
+                            {profileData.photos.map((_, index) => (
+                                <div
+                                    key={index}
+                                    style={{
+                                        width: 8,
+                                        height: 8,
+                                        borderRadius: '50%',
+                                        background: index === currentPhotoIndex ? '#fff' : 'rgba(255, 255, 255, 0.5)',
+                                        transition: 'background 0.3s ease'
+                                    }}
+                                />
+                            ))}
+                        </div>
+
+                        {/* Info Overlay (Optional, but keeping below for now as per design request to just change picture) */}
+                    </div>
+
+                    <div style={{ padding: '0 20px 20px', textAlign: 'center' }}>
+                        {/* Existing Edit inputs moved here or kept below? 
+                             The original code had Avatar then Inputs/Text. 
+                             Let's keep the name/age inputs here.
+                             The style={{ padding: 20, textAlign: 'center' }} was on the parent div which we removed/changed.
+                             So we add a container for the rest of the header content.
+                          */}
                         {isEditing ? (
                             <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginBottom: 10 }}>
                                 <Input
