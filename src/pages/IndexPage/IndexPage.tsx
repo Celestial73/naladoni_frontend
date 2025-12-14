@@ -5,6 +5,7 @@ import { Link } from '@/components/Link/Link.tsx';
 import { Page } from '@/components/Page.tsx';
 
 import tonSvg from './ton.svg';
+import projectImage from '../../../assets/photo_2025-12-14_19-07-23.jpg';
 
 export const IndexPage: FC = () => {
   return (
@@ -14,6 +15,7 @@ export const IndexPage: FC = () => {
           header="Bitches"
           footer="You can use these pages to learn more about features, provided by Telegram Mini Apps and other useful projects"
         >
+          <Image src={projectImage} />
           <Link to="/ton-connect">
             <Cell
               before={<Image src={tonSvg} style={{ backgroundColor: '#007AFF' }} />}
