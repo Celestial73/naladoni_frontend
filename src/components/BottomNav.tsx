@@ -13,7 +13,7 @@ export function BottomNav() {
     ];
 
     return (
-        <Tabbar style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 100 }}>
+        <Tabbar>
             {tabs.map((tab) => {
                 const Icon = tab.icon;
                 const isActive = location.pathname === tab.path;

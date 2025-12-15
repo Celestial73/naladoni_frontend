@@ -166,7 +166,7 @@ export function Profile() {
 
     return (
         <Page>
-            <List>
+            <List style={{ paddingBottom: '80px' }}>
                 {/* Header & Photo Section */}
                 <Section>
                     <div style={{ padding: 0, textAlign: 'center', position: 'relative' }}>

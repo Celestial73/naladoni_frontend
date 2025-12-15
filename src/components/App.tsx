@@ -17,23 +17,25 @@ export function App() {
       appearance={isDark ? 'dark' : 'light'}
       platform={['macos', 'ios'].includes(lp.tgWebAppPlatform) ? 'ios' : 'base'}
     >
-      <div style={{ position: 'relative', minHeight: '100vh', paddingBottom: '80px' }}>
-        <AnimatePresence mode="wait">
-          <Routes location={location} key={location.pathname}>
-            {routes.map((route) => (
-              <Route
-                key={route.path}
-                path={route.path}
-                element={
-                  <PageWrapper>
-                    <route.Component />
-                  </PageWrapper>
-                }
-              />
-            ))}
-            <Route path="*" element={<Navigate to="/" />} />
-          </Routes>
-        </AnimatePresence>
+      <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <div style={{ flex: 1, position: 'relative', overflow: 'auto' }}>
+          <AnimatePresence mode="wait">
+            <Routes location={location} key={location.pathname}>
+              {routes.map((route) => (
+                <Route
+                  key={route.path}
+                  path={route.path}
+                  element={
+                    <PageWrapper>
+                      <route.Component />
+                    </PageWrapper>
+                  }
+                />
+              ))}
+              <Route path="*" element={<Navigate to="/profile" />} />
+            </Routes>
+          </AnimatePresence>
+        </div>
         <BottomNav />
       </div>
     </AppRoot>

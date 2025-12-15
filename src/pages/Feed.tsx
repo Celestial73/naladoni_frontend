@@ -185,7 +185,6 @@ export function Feed() {
       <div
         style={{
           height: '100%',
-          minHeight: 0,
           display: 'flex',
           flexDirection: 'column',
           backgroundColor: 'var(--tgui--secondary_bg_color)'
@@ -193,17 +192,16 @@ export function Feed() {
       >
         {/* Header */}
         <header style={{ padding: '24px 20px 8px', flexShrink: 0, textAlign: 'center' }}>
-          <h1 style={{ fontSize: 20, fontWeight: 600, color: 'var(--tgui--text_color)', opacity: 0.5, margin: 0 }}>Discover</h1>
+          <h1 style={{ fontSize: 20, fontWeight: 600, color: 'var(--tgui--text_color)', opacity: 0.5, margin: 0 }}>НАЛАДОНИ</h1>
         </header>
 
         {/* Main area */}
-        <main style={{ position: 'relative', flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, padding: '0 16px 80px', justifyContent: 'center' }}>
-          <div style={{ width: '100%', maxWidth: 340, margin: '0 auto', aspectRatio: '3/4', maxHeight: 600, height: '60vh' }}>
+        <main style={{ position: 'relative', flex: 1, display: 'flex', flexDirection: 'column', padding: '0 16px 80px', justifyContent: 'center' }}>
+          <div style={{ width: '100%', maxWidth: 340, margin: '0 auto', aspectRatio: '3/4', maxHeight: 600 }}>
             {/* Card Container */}
             <div
               style={{
                 width: '100%',
-                height: '100%',
                 position: 'relative',
                 borderRadius: 24,
                 overflow: 'hidden',

@@ -10,7 +10,9 @@ export function PageWrapper({ children }: PropsWithChildren) {
             transition={{ duration: 0.2, ease: "easeOut" }}
             style={{
                 width: '100%',
-                minHeight: '100vh',
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
                 backgroundColor: 'var(--tgui--bg_color)'
             }}
         >
