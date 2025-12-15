@@ -5,6 +5,7 @@ import { AnimatePresence } from 'framer-motion';
 
 import { routes } from '@/navigation/routes.tsx';
 import { PageWrapper } from '@/components/PageWrapper.tsx';
+import { BottomNav } from '@/components/BottomNav.tsx';
 
 export function App() {
   const lp = useLaunchParams();
@@ -16,7 +17,7 @@ export function App() {
       appearance={isDark ? 'dark' : 'light'}
       platform={['macos', 'ios'].includes(lp.tgWebAppPlatform) ? 'ios' : 'base'}
     >
-      <div style={{ position: 'relative', minHeight: '100vh', overflow: 'hidden' }}>
+      <div style={{ position: 'relative', minHeight: '100vh', paddingBottom: '80px' }}>
         <AnimatePresence mode="wait">
           <Routes location={location} key={location.pathname}>
             {routes.map((route) => (
@@ -33,6 +34,7 @@ export function App() {
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         </AnimatePresence>
+        <BottomNav />
       </div>
     </AppRoot>
   );

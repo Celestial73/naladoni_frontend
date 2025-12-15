@@ -11,9 +11,6 @@ export function PageWrapper({ children }: PropsWithChildren) {
             style={{
                 width: '100%',
                 minHeight: '100vh',
-                position: 'absolute',
-                top: 0,
-                left: 0,
                 backgroundColor: 'var(--tgui--bg_color)'
             }}
         >
