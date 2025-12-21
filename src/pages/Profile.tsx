@@ -9,6 +9,11 @@ import {
     IconButton
 } from '@telegram-apps/telegram-ui';
 import {
+    initData,
+    type User,
+    useSignal,
+} from '@tma.js/sdk-react';
+import {
     Briefcase,
     GraduationCap,
     MapPin,
@@ -23,9 +28,14 @@ import {
     Info
 } from 'lucide-react';
 import useEmblaCarousel from 'embla-carousel-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 
 import { Page } from '@/components/Page.tsx';
+import { DisplayData, type DisplayDataRow } from '@/components/DisplayData/DisplayData.tsx';
+
+function getUserRows(user: User): DisplayDataRow[] {
+    return Object.entries(user).map(([title, value]) => ({ title, value }));
+}
 
 export function Profile() {
     const [isEditing, setIsEditing] = useState(false);
@@ -35,6 +45,44 @@ export function Profile() {
     const [newFieldName, setNewFieldName] = useState('');
     const [newFieldValue, setNewFieldValue] = useState('');
     const [newInterest, setNewInterest] = useState('');
+
+    const initDataRaw = useSignal(initData.raw);
+    const initDataState = useSignal(initData.state);
+
+    const initDataRows = useMemo<DisplayDataRow[] | undefined>(() => {
+        if (!initDataState || !initDataRaw) {
+            return;
+        }
+        return [
+            { title: 'raw', value: initDataRaw },
+            ...Object.entries(initDataState).reduce<DisplayDataRow[]>((acc, [title, value]) => {
+                if (value instanceof Date) {
+                    acc.push({ title, value: value.toISOString() });
+                } else if (!value || typeof value !== 'object') {
+                    acc.push({ title, value });
+                }
+                return acc;
+            }, []),
+        ];
+    }, [initDataState, initDataRaw]);
+
+    const userRows = useMemo<DisplayDataRow[] | undefined>(() => {
+        return initDataState && initDataState.user
+            ? getUserRows(initDataState.user)
+            : undefined;
+    }, [initDataState]);
+
+    const receiverRows = useMemo<DisplayDataRow[] | undefined>(() => {
+        return initDataState && initDataState.receiver
+            ? getUserRows(initDataState.receiver)
+            : undefined;
+    }, [initDataState]);
+
+    const chatRows = useMemo<DisplayDataRow[] | undefined>(() => {
+        return !initDataState?.chat
+            ? undefined
+            : Object.entries(initDataState.chat).map(([title, value]) => ({ title, value }));
+    }, [initDataState]);
 
     const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
 
@@ -453,6 +501,26 @@ export function Profile() {
                     </Section>
                 )}
 
+                {initDataRows && (
+                    <Section header="Init Data">
+                        <DisplayData rows={initDataRows} />
+                    </Section>
+                )}
+                {userRows && (
+                    <Section header="User Data">
+                        <DisplayData rows={userRows} />
+                    </Section>
+                )}
+                {receiverRows && (
+                    <Section header="Receiver Data">
+                        <DisplayData rows={receiverRows} />
+                    </Section>
+                )}
+                {chatRows && (
+                    <Section header="Chat Data">
+                        <DisplayData rows={chatRows} />
+                    </Section>
+                )}
             </List>
         </Page>
     );
