@@ -5,9 +5,8 @@
  */
 export function publicUrl(path: string): string {
   // The baseUrl must be ending with the slash. The reason is if the baseUrl will
-  // equal to "/my-base", then passing the path equal to "tonconnect-manifest.json" will not
-  // give us the expected result, it will actually be "/tonconnect-manifest.json", but the expected
-  // one is "/my-base/tonconnect-manifest.json". This is due to the URL constructor.
+  // equal to "/my-base", then passing a path without a leading slash will not
+  // give us the expected result due to the URL constructor behavior.
   let baseUrl = import.meta.env.BASE_URL;
   if (!baseUrl.endsWith('/')) {
     baseUrl += '/';
@@ -22,9 +21,8 @@ export function publicUrl(path: string): string {
 
   return new URL(
     // The path is not allowed to be starting with the slash as long as it will break the
-    // base URL. For instance, having the "/my-base/" base URL and path
-    // equal to "/tonconnect-manifest.json", we will not get the expected result like
-    // "/my-base/tonconnect-manifest.json", but "/tonconnect-manifest.json".
+    // base URL. For instance, having the "/my-base/" base URL and a path starting with "/",
+    // we will not get the expected result.
     path.replace(/^\/+/, ''),
     isBaseAbsolute
       ? baseUrl
