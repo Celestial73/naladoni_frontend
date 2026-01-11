@@ -103,7 +103,7 @@ export function Profile() {
     }, [emblaApi]);
 
     const [profileData, setProfileData] = useState({
-        name: auth.user,
+        name: auth.user?.first_name,
         age: '28',
         location: 'New York, NY',
         distance: '2',
@@ -500,6 +500,22 @@ export function Profile() {
                                 <Trash2 size={16} /> Remove Section
                             </Button>
                         )}
+                    </Section>
+                )}
+
+                {/* Auth Context Data */}
+                {auth && Object.keys(auth).length > 0 && (
+                    <Section header="Auth Context">
+                        <DisplayData rows={Object.entries(auth).map(([title, value]) => {
+                            // Handle nested objects by stringifying them
+                            let displayValue = value;
+                            if (typeof value === 'object' && value !== null && !(value instanceof Date)) {
+                                displayValue = JSON.stringify(value, null, 2);
+                            } else if (value instanceof Date) {
+                                displayValue = value.toISOString();
+                            }
+                            return { title, value: displayValue };
+                        })} />
                     </Section>
                 )}
 

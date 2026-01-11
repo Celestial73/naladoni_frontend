@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { initData, useSignal, useLaunchParams } from "@tma.js/sdk-react";
 import { Placeholder, AppRoot } from '@telegram-apps/telegram-ui';
 import useAuth from '../hooks/useAuth';
+import axios from "../api/axios";
 
 const Login = () => {
     const [isLoading, setIsLoading] = useState(true);
@@ -12,18 +13,63 @@ const Login = () => {
     const lp = useLaunchParams();
 
     useEffect(() => {
-        if (!initDataRaw) {
-            console.warn("InitData is not available");
-            setAuthError(true);
+        let isMounted = true;
+
+        const authenticateWithInitData = async () => {
+            try {
+                if (!initDataRaw) {
+                    console.warn("InitData is not available");
+                    if (isMounted) {
+                        setAuthError(true);
+                        setIsLoading(false);
+                    }
+                    return;
+                }
+
+                // Send initData to backend for authentication
+                const response = await axios.post(
+                    "/auth/login-telegram",
+                    { initData: initDataRaw },
+
+                );
+
+                // If response is successful, store initData and all backend response data in auth context
+                if (response?.status === 200 || response?.status === 201) {
+                    if (isMounted) {
+                        setAuth({ 
+                            initData: initDataRaw,
+                            ...response.data // Store all data returned by backend
+                        });
+                        setAuthError(false);
+                        setIsLoading(false);
+                    }
+                } else {
+                    if (isMounted) {
+                        setAuthError(true);
+                        setIsLoading(false);
+                    }
+                }
+            } catch (error) {
+                console.error("Authentication error:", error);
+                if (isMounted) {
+                    setAuthError(true);
+                    setIsLoading(false);
+                }
+            }
+        };
+
+        // Only authenticate if we don't already have initData in context
+        if (!auth?.initData) {
+            authenticateWithInitData();
+        } else {
             setIsLoading(false);
-            return;
+            setAuthError(false);
         }
 
-        // Store initData in auth context
-        setAuth({ initData: initDataRaw });
-        setAuthError(false);
-        setIsLoading(false);
-    }, [initDataRaw, setAuth]);
+        console.log(auth);
+        return () => { isMounted = false; };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [initDataRaw]);
 
     // Show error screen if initData is not available
     if (authError && !isLoading) {
@@ -34,7 +80,7 @@ const Login = () => {
             >
                 <Placeholder
                     header="Authentication Failed"
-                    description="Unable to authenticate. InitData is not available."
+                    description="Unable to authenticate. Please try again later."
                 />
             </AppRoot>
         );
