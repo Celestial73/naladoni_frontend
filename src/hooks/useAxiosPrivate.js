@@ -10,7 +10,7 @@ const useAxiosPrivate = () => {
             config => {
                 // Add initData to Authorization header if available
                 if (auth?.initData && !config.headers['Authorization']) {
-                    config.headers['Authorization'] = `Telegram ${auth.initData}`;
+                    config.headers['Authorization'] = `Bearer ${auth.initData}`;
                 }
                 return config;
             }, (error) => Promise.reject(error)

@@ -13,9 +13,6 @@ import {
     useSignal,
 } from '@tma.js/sdk-react';
 import {
-    Briefcase,
-    GraduationCap,
-    MapPin,
     Camera,
     Music,
     Plane,
@@ -32,10 +29,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Page } from '@/components/Page.jsx';
 import { DisplayData } from '@/components/DisplayData/DisplayData.jsx';
 import useAuth from '@/hooks/useAuth';
-
-function getUserRows(user) {
-    return Object.entries(user).map(([title, value]) => ({ title, value }));
-}
+import useAxiosPrivate from '@/hooks/useAxiosPrivate';
 
 export function Profile() {
     const [isEditing, setIsEditing] = useState(false);
@@ -45,11 +39,14 @@ export function Profile() {
     const [newFieldName, setNewFieldName] = useState('');
     const [newFieldValue, setNewFieldValue] = useState('');
     const [newInterest, setNewInterest] = useState('');
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
     const initDataRaw = useSignal(initData.raw);
     const initDataState = useSignal(initData.state);
 
     const { auth } = useAuth();
+    const axiosPrivate = useAxiosPrivate();
 
     const initDataRows = useMemo(() => {
         if (!initDataState || !initDataRaw) {
@@ -68,23 +65,7 @@ export function Profile() {
         ];
     }, [initDataState, initDataRaw]);
 
-    const userRows = useMemo(() => {
-        return initDataState && initDataState.user
-            ? getUserRows(initDataState.user)
-            : undefined;
-    }, [initDataState]);
 
-    const receiverRows = useMemo(() => {
-        return initDataState && initDataState.receiver
-            ? getUserRows(initDataState.receiver)
-            : undefined;
-    }, [initDataState]);
-
-    const chatRows = useMemo(() => {
-        return !initDataState?.chat
-            ? undefined
-            : Object.entries(initDataState.chat).map(([title, value]) => ({ title, value }));
-    }, [initDataState]);
 
     const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
 
@@ -103,55 +84,185 @@ export function Profile() {
     }, [emblaApi]);
 
     const [profileData, setProfileData] = useState({
-        name: auth.user?.first_name,
-        age: '28',
-        location: 'New York, NY',
-        distance: '2',
-        photos: [
-            'https://images.unsplash.com/photo-1594318223885-20dc4b889f9e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwb3J0cmFpdCUyMHdvbWFuJTIwc21pbGluZ3xlbnwxfHx8fDE3NjU2MDQ2NDh8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
-            'https://images.unsplash.com/photo-1573418944421-11c3c8c5c21b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3b21hbiUyMG91dGRvb3IlMjBoaWtpbmd8ZW58MXx8fHwxNzY1NjU1MjE3fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
-            'https://images.unsplash.com/photo-1581065112742-eb9b90ecf0a3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3b21hbiUyMGNvZmZlZSUyMHNob3B8ZW58MXx8fHwxNjU1ODg5MjF8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
-        ],
-        bio: 'Adventurous mf and coffee enthusiast ☕ Love exploring new hiking trails and trying different cuisines. Always up for spontaneous road trips and deep conversations.',
-        work: 'Product Designer',
-        education: 'NYU, Design',
+        name: auth.user?.name || '',
+        age: '',
+        photo_url: '',
+        bio: '',
+        gender: '',
+        id: null,
+        user: null,
         showBio: true,
-        showWork: true,
-        showEducation: true,
-        showLocation: true,
         showInterests: true,
         customFields: [],
-        interests: [
-            { id: '1', name: 'Music', icon: 'Music', color: 'pink' },
-            { id: '2', name: 'Photography', icon: 'Camera', color: 'purple' },
-            { id: '3', name: 'Travel', icon: 'Plane', color: 'blue' },
-            { id: '4', name: 'Coffee', icon: 'Coffee', color: 'amber' },
-        ],
+        interests: [],
     });
+    const [originalProfileData, setOriginalProfileData] = useState(null);
 
-    const handleSave = () => {
-        setIsEditing(false);
-        setShowAddField(false);
-        setShowAddInterest(false);
-        // Here you would typically save to a backend
+    // Fetch profile data from backend on component mount
+    useEffect(() => {
+        const fetchProfile = async () => {
+            try {
+                setLoading(true);
+                setError(null);
+                const response = await axiosPrivate.get('/profiles/me');
+                
+                // Log the fetched profile data
+                console.log('Fetched profile data:', response.data);
+                
+                // Update profileData with fetched data
+                if (response.data) {
+                    setProfileData(prevData => {
+                        const data = response.data;
+                        // Map backend response structure to component state
+                        const updatedProfile = {
+                            ...prevData,
+                            // Map display_name to name
+                            name: data.display_name || prevData.name || '',
+                            // Map photo_url directly (single URL string)
+                            photo_url: data.photo_url || prevData.photo_url || '',
+                            // Direct mappings from backend (already camelCase)
+                            bio: data.bio || prevData.bio || '',
+                            gender: data.gender || prevData.gender || '',
+                            interests: data.interests || prevData.interests || [],
+                            // Map custom_fields (snake_case) to customFields (camelCase)
+                            // Backend uses title/value format, add id for internal tracking
+                            customFields: (data.custom_fields || prevData.customFields || []).map((field, index) => ({
+                                ...field,
+                                id: field.id || `field-${index}-${Date.now()}`
+                            })),
+                            // Store additional backend data
+                            id: data.id || prevData.id,
+                            user: data.user || prevData.user,
+                            // Visibility flags (already camelCase in backend response)
+                            showBio: data.showBio !== undefined ? data.showBio : prevData.showBio,
+                            showInterests: data.showInterests !== undefined ? data.showInterests : prevData.showInterests,
+                            // Add age if it exists in backend response
+                            age: data.age?.toString() || prevData.age || '',
+                        };
+                        console.log('Updated profile state:', updatedProfile);
+                        return updatedProfile;
+                    });
+                }
+            } catch (err) {
+                console.error('Error fetching profile:', err);
+                setError(err.response?.data?.message || err.message || 'Failed to fetch profile');
+                // Optionally, you might want to keep default data or handle 404 differently
+                // For now, we'll just set the error and keep the empty state
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        // Only fetch if we have auth (initData available)
+        if (auth?.initData) {
+            fetchProfile();
+        } else {
+            setLoading(false);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [auth?.initData]); // Re-fetch if initData changes (axiosPrivate is stable)
+
+    const handleSave = async () => {
+        try {
+            setLoading(true);
+            setError(null);
+            
+            // Map profileData state to backend format
+            const payload = {
+                display_name: profileData.name,
+                age: profileData.age ? parseInt(profileData.age) : undefined,
+                bio: profileData.bio,
+                gender: profileData.gender,
+                photo_url: profileData.photo_url,
+                interests: profileData.interests,
+                custom_fields: profileData.customFields.map(field => ({
+                    title: field.title,
+                    value: field.value
+                })),
+                showBio: profileData.showBio,
+                showInterests: profileData.showInterests,
+            };
+            
+            // Remove undefined fields
+            Object.keys(payload).forEach(key => {
+                if (payload[key] === undefined) {
+                    delete payload[key];
+                }
+            });
+            
+            console.log('Saving profile data:', payload);
+            
+            const response = await axiosPrivate.patch('/profiles/me', payload);
+            
+            console.log('Profile saved successfully:', response.data);
+            
+            // Update profile data with response from backend
+            if (response.data) {
+                setProfileData(prevData => {
+                    const data = response.data;
+                    const updatedProfile = {
+                        ...prevData,
+                        name: data.display_name || prevData.name || '',
+                        photo_url: data.photo_url || prevData.photo_url || '',
+                        bio: data.bio || prevData.bio || '',
+                        gender: data.gender || prevData.gender || '',
+                        interests: data.interests || prevData.interests || [],
+                        customFields: (data.custom_fields || prevData.customFields || []).map((field, index) => ({
+                            ...field,
+                            id: field.id || `field-${index}-${Date.now()}`
+                        })),
+                        id: data.id || prevData.id,
+                        user: data.user || prevData.user,
+                        showBio: data.showBio !== undefined ? data.showBio : prevData.showBio,
+                        showInterests: data.showInterests !== undefined ? data.showInterests : prevData.showInterests,
+                        age: data.age?.toString() || prevData.age || '',
+                    };
+                    return updatedProfile;
+                });
+            }
+            
+            setIsEditing(false);
+            setShowAddField(false);
+            setShowAddInterest(false);
+            setOriginalProfileData(null); // Clear original data after successful save
+        } catch (err) {
+            console.error('Error saving profile:', err);
+            setError(err.response?.data?.message || err.message || 'Failed to save profile');
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleCancel = () => {
+        // Restore original data if it was saved
+        if (originalProfileData) {
+            setProfileData(originalProfileData);
+            setOriginalProfileData(null);
+        }
         setIsEditing(false);
         setShowAddField(false);
         setShowAddInterest(false);
-        // Reset to original data if needed
+    };
+    
+    const handleEditStart = () => {
+        // Store current profile data as original before editing
+        setOriginalProfileData({ ...profileData });
+        setIsEditing(true);
     };
 
     const deleteSection = (section) => {
         setProfileData({ ...profileData, [section]: false });
+    };
+    
+    const restoreSection = (section) => {
+        setProfileData({ ...profileData, [section]: true });
     };
 
     const addCustomField = () => {
         if (newFieldName.trim() && newFieldValue.trim()) {
             const newField = {
                 id: Date.now().toString(),
-                name: newFieldName,
+                title: newFieldName,
                 value: newFieldValue,
             };
             setProfileData({
@@ -182,88 +293,115 @@ export function Profile() {
 
     const addInterest = () => {
         if (newInterest.trim()) {
-            const newInterestObj = {
-                id: Date.now().toString(),
-                name: newInterest,
-                icon: 'Music', // Default icon
-                color: 'pink', // Default color
-            };
             setProfileData({
                 ...profileData,
-                interests: [...profileData.interests, newInterestObj],
+                interests: [...profileData.interests, newInterest.trim()],
             });
             setNewInterest('');
             setShowAddInterest(false);
         }
     };
 
-    const deleteInterest = (id) => {
+    const deleteInterest = (interestToDelete) => {
         setProfileData({
             ...profileData,
-            interests: profileData.interests.filter((interest) => interest.id !== id),
+            interests: profileData.interests.filter((interest) => interest !== interestToDelete),
         });
     };
 
-    const getIconComponent = (iconName) => {
-        const icons = {
-            Music,
-            Camera,
-            Plane,
-            Coffee,
-        };
-        return icons[iconName] || Music;
-    };
+    // Show loading state
+    if (loading) {
+        return (
+            <Page>
+                <List style={{ paddingBottom: '80px' }}>
+                    <Section>
+                        <Cell>
+                            <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+                                Loading profile...
+                            </div>
+                        </Cell>
+                    </Section>
+                </List>
+            </Page>
+        );
+    }
+
+    // Show error state
+    if (error && !profileData.name) {
+        return (
+            <Page>
+                <List style={{ paddingBottom: '80px' }}>
+                    <Section>
+                        <Cell>
+                            <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--tgui--error_color)' }}>
+                                <div style={{ marginBottom: 10 }}>Error loading profile</div>
+                                <div style={{ fontSize: 14, opacity: 0.8 }}>{error}</div>
+                            </div>
+                        </Cell>
+                    </Section>
+                </List>
+            </Page>
+        );
+    }
 
     return (
         <Page>
             <List style={{ paddingBottom: '80px' }}>
+                {error && (
+                    <Section>
+                        <Cell>
+                            <div style={{ color: 'var(--tgui--error_color)', fontSize: 14, padding: '10px 0' }}>
+                                {error}
+                            </div>
+                        </Cell>
+                    </Section>
+                )}
                 {/* Header & Photo Section */}
                 <Section>
                     <div style={{ padding: 0, textAlign: 'center', position: 'relative' }}>
                         {/* Carousel */}
-                        <div className="embla" ref={emblaRef} style={{ overflow: 'hidden', width: '100%' }}>
-                            <div className="embla__container" style={{ display: 'flex' }}>
-                                {profileData.photos.map((photo, index) => (
-                                    <div className="embla__slide" key={index} style={{ flex: '0 0 100%', minWidth: 0 }}>
-                                        <img
-                                            src={photo}
-                                            alt={`Profile ${index + 1}`}
-                                            style={{
-                                                width: '100%',
-                                                aspectRatio: '4/5', // Premium portrait ratio
-                                                objectFit: 'cover',
-                                                display: 'block'
-                                            }}
-                                        />
+                        {profileData.photo_url && (
+                            <>
+                                <div className="embla" ref={emblaRef} style={{ overflow: 'hidden', width: '100%' }}>
+                                    <div className="embla__container" style={{ display: 'flex' }}>
+                                        <div className="embla__slide" style={{ flex: '0 0 100%', minWidth: 0 }}>
+                                            <img
+                                                src={profileData.photo_url}
+                                                alt="Profile"
+                                                style={{
+                                                    width: '100%',
+                                                    aspectRatio: '4/5', // Premium portrait ratio
+                                                    objectFit: 'cover',
+                                                    display: 'block'
+                                                }}
+                                            />
+                                        </div>
                                     </div>
-                                ))}
-                            </div>
-                        </div>
+                                </div>
 
-                        {/* Pagination Dots */}
-                        <div style={{
-                            position: 'absolute',
-                            bottom: 10,
-                            left: 0,
-                            right: 0,
-                            display: 'flex',
-                            justifyContent: 'center',
-                            gap: 6,
-                            zIndex: 10
-                        }}>
-                            {profileData.photos.map((_, index) => (
-                                <div
-                                    key={index}
-                                    style={{
-                                        width: 8,
-                                        height: 8,
-                                        borderRadius: '50%',
-                                        background: index === currentPhotoIndex ? '#fff' : 'rgba(255, 255, 255, 0.5)',
-                                        transition: 'background 0.3s ease'
-                                    }}
-                                />
-                            ))}
-                        </div>
+                                {/* Pagination Dots - Single dot for single photo */}
+                                <div style={{
+                                    position: 'absolute',
+                                    bottom: 10,
+                                    left: 0,
+                                    right: 0,
+                                    display: 'flex',
+                                    justifyContent: 'center',
+                                    gap: 6,
+                                    zIndex: 10
+                                }}>
+                                    <div
+                                        style={{
+                                            width: 8,
+                                            height: 8,
+                                            borderRadius: '50%',
+                                            background: '#fff',
+                                            transition: 'background 0.3s ease'
+                                        }}
+                                    />
+                                </div>
+                            </>
+                        )}
 
                         {/* Info Overlay (Optional, but keeping below for now as per design request to just change picture) */}
                     </div>
@@ -293,10 +431,7 @@ export function Profile() {
                                 {profileData.name}, {profileData.age}
                             </div>
                         )}
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, color: 'var(--tgui--secondary_text_color)' }}>
-                            <MapPin size={16} />
-                            <span>{profileData.distance} miles away</span>
-                        </div>
+
                     </div>
 
                     <Cell
@@ -305,7 +440,7 @@ export function Profile() {
                             isEditing ? (
                                 <Button size="s" onClick={handleSave} mode="filled" before={<Check size={16} />}>Save</Button>
                             ) : (
-                                <Button size="s" onClick={() => setIsEditing(true)} mode="bezeled">Edit Profile</Button>
+                                <Button size="s" onClick={handleEditStart} mode="bezeled">Edit Profile</Button>
                             )
                         }
                         onClick={isEditing ? handleCancel : () => { }}
@@ -336,75 +471,24 @@ export function Profile() {
 
                 {/* Info Section */}
                 <Section header="Details">
-                    {profileData.showWork && (
-                        <Cell
-                            before={<Avatar size={28} style={{ background: 'var(--tgui--secondary_bg_color)' }}><Briefcase size={16} /></Avatar>}
-                            description={isEditing ? 'Job Title' : undefined}
-                            after={isEditing && <IconButton mode="plain" onClick={() => deleteSection('showWork')}><Trash2 size={16} /></IconButton>}
-                        >
-                            {isEditing ? (
-                                <Input
-                                    value={profileData.work}
-                                    onChange={(e) => setProfileData({ ...profileData, work: e.target.value })}
-                                />
-                            ) : (
-                                profileData.work
-                            )}
-                        </Cell>
-                    )}
-
-                    {profileData.showEducation && (
-                        <Cell
-                            before={<Avatar size={28} style={{ background: 'var(--tgui--secondary_bg_color)' }}><GraduationCap size={16} /></Avatar>}
-                            description={isEditing ? 'Education' : undefined}
-                            after={isEditing && <IconButton mode="plain" onClick={() => deleteSection('showEducation')}><Trash2 size={16} /></IconButton>}
-                        >
-                            {isEditing ? (
-                                <Input
-                                    value={profileData.education}
-                                    onChange={(e) => setProfileData({ ...profileData, education: e.target.value })}
-                                />
-                            ) : (
-                                profileData.education
-                            )}
-                        </Cell>
-                    )}
-
-                    {profileData.showLocation && (
-                        <Cell
-                            before={<Avatar size={28} style={{ background: 'var(--tgui--secondary_bg_color)' }}><MapPin size={16} /></Avatar>}
-                            description={isEditing ? 'Location' : undefined}
-                            after={isEditing && <IconButton mode="plain" onClick={() => deleteSection('showLocation')}><Trash2 size={16} /></IconButton>}
-                        >
-                            {isEditing ? (
-                                <Input
-                                    value={profileData.location}
-                                    onChange={(e) => setProfileData({ ...profileData, location: e.target.value })}
-                                />
-                            ) : (
-                                profileData.location
-                            )}
-                        </Cell>
-                    )}
-
                     {/* Custom Fields */}
                     {profileData.customFields.map((field) => (
                         <Cell
                             key={field.id}
                             before={<Avatar size={28} style={{ background: 'var(--tgui--secondary_bg_color)' }}><Info size={16} /></Avatar>}
-                            description={isEditing ? 'Custom Field' : field.name}
+                            description={isEditing ? 'Custom Field' : field.title}
                             after={isEditing && <IconButton mode="plain" onClick={() => deleteCustomField(field.id)}><Trash2 size={16} /></IconButton>}
                         >
                             {isEditing ? (
                                 <div style={{ display: 'flex', gap: 5 }}>
                                     <Input
-                                        placeholder="Name"
-                                        value={field.name}
-                                        onChange={(e) => updateCustomField(field.id, 'name', e.target.value)}
+                                        placeholder="Title"
+                                        value={field.title || ''}
+                                        onChange={(e) => updateCustomField(field.id, 'title', e.target.value)}
                                     />
                                     <Input
                                         placeholder="Value"
-                                        value={field.value}
+                                        value={field.value || ''}
                                         onChange={(e) => updateCustomField(field.id, 'value', e.target.value)}
                                     />
                                 </div>
@@ -443,39 +527,65 @@ export function Profile() {
                     )}
                 </Section>
 
+                {/* Hidden Sections - Show in editing mode to allow restoration */}
+                {isEditing && (
+                    <Section header="Hidden Sections">
+                        {!profileData.showBio && (
+                            <Cell
+                                before={<Avatar size={28} style={{ background: 'var(--tgui--secondary_bg_color)' }}><Info size={16} /></Avatar>}
+                                description="About section is hidden"
+                                after={
+                                    <Button size="s" onClick={() => restoreSection('showBio')} mode="filled">
+                                        <PlusIcon size={16} style={{ marginRight: 5 }} /> Restore
+                                    </Button>
+                                }
+                            >
+                                About
+                            </Cell>
+                        )}
+                        {!profileData.showInterests && (
+                            <Cell
+                                before={<Avatar size={28} style={{ background: 'var(--tgui--secondary_bg_color)' }}><Info size={16} /></Avatar>}
+                                description="Interests section is hidden"
+                                after={
+                                    <Button size="s" onClick={() => restoreSection('showInterests')} mode="filled">
+                                        <PlusIcon size={16} style={{ marginRight: 5 }} /> Restore
+                                    </Button>
+                                }
+                            >
+                                Interests
+                            </Cell>
+                        )}
+                    </Section>
+                )}
 
                 {/* Interests Section */}
                 {profileData.showInterests && (
                     <Section header="Interests">
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, padding: '0 20px 20px' }}>
-                            {profileData.interests.map((interest) => {
-                                const IconComponent = getIconComponent(interest.icon);
-                                // Fallback for color mapping or use TGUI chips ideally
-                                return (
-                                    <div
-                                        key={interest.id}
-                                        style={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: 6,
-                                            padding: '6px 12px',
-                                            background: 'var(--tgui--secondary_bg_color)',
-                                            borderRadius: 16,
-                                            fontSize: 14
-                                        }}
-                                    >
-                                        <IconComponent size={14} />
-                                        {interest.name}
-                                        {isEditing && (
-                                            <XIcon
-                                                size={14}
-                                                style={{ cursor: 'pointer', opacity: 0.6 }}
-                                                onClick={() => deleteInterest(interest.id)}
-                                            />
-                                        )}
-                                    </div>
-                                );
-                            })}
+                            {profileData.interests.map((interest, index) => (
+                                <div
+                                    key={index}
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 6,
+                                        padding: '6px 12px',
+                                        background: 'var(--tgui--secondary_bg_color)',
+                                        borderRadius: 16,
+                                        fontSize: 14
+                                    }}
+                                >
+                                    {interest}
+                                    {isEditing && (
+                                        <XIcon
+                                            size={14}
+                                            style={{ cursor: 'pointer', opacity: 0.6 }}
+                                            onClick={() => deleteInterest(interest)}
+                                        />
+                                    )}
+                                </div>
+                            ))}
 
                             {isEditing && (
                                 showAddInterest ? (
@@ -503,42 +613,14 @@ export function Profile() {
                     </Section>
                 )}
 
-                {/* Auth Context Data */}
-                {auth && Object.keys(auth).length > 0 && (
-                    <Section header="Auth Context">
-                        <DisplayData rows={Object.entries(auth).map(([title, value]) => {
-                            // Handle nested objects by stringifying them
-                            let displayValue = value;
-                            if (typeof value === 'object' && value !== null && !(value instanceof Date)) {
-                                displayValue = JSON.stringify(value, null, 2);
-                            } else if (value instanceof Date) {
-                                displayValue = value.toISOString();
-                            }
-                            return { title, value: displayValue };
-                        })} />
-                    </Section>
-                )}
 
                 {initDataRows && (
                     <Section header="Init Data">
                         <DisplayData rows={initDataRows} />
                     </Section>
                 )}
-                {userRows && (
-                    <Section header="User Data">
-                        <DisplayData rows={userRows} />
-                    </Section>
-                )}
-                {receiverRows && (
-                    <Section header="Receiver Data">
-                        <DisplayData rows={receiverRows} />
-                    </Section>
-                )}
-                {chatRows && (
-                    <Section header="Chat Data">
-                        <DisplayData rows={chatRows} />
-                    </Section>
-                )}
+
+
             </List>
         </Page>
     );

@@ -66,7 +66,7 @@ const Login = () => {
             setAuthError(false);
         }
 
-        console.log(auth);
+
         return () => { isMounted = false; };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [initDataRaw]);
