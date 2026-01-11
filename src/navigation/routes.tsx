@@ -13,13 +13,14 @@ interface Route {
   Component: ComponentType;
   title?: string;
   icon?: JSX.Element;
+  useMainLayout?: boolean;
 }
 
 export const routes: Route[] = [
   { path: '/', Component: IndexPage },
-  { path: '/feed', Component: Feed, title: 'Feed' },
-  { path: '/events', Component: Events, title: 'Events' },
-  { path: '/profile', Component: Profile, title: 'Profile' },
+  { path: '/feed', Component: Feed, title: 'Feed', useMainLayout: true },
+  { path: '/events', Component: Events, title: 'Events', useMainLayout: true },
+  { path: '/profile', Component: Profile, title: 'Profile', useMainLayout: true },
   { path: '/init-data', Component: InitDataPage, title: 'Init Data' },
   { path: '/theme-params', Component: ThemeParamsPage, title: 'Theme Params' },
   { path: '/launch-params', Component: LaunchParamsPage, title: 'Launch Params' },
