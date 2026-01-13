@@ -62,7 +62,7 @@ export function CreateEvent() {
     setLoading(true);
     try {
       // Combine date and time into a string for starts_at
-      const startsAt = `${formData.date}T${formData.time}:00`;
+      const startsAt = `${formData.date}, ${formData.time}`;
 
       // Prepare payload according to Swagger documentation
       const payload = {
