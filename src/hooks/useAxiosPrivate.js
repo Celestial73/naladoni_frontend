@@ -1,15 +1,9 @@
 import { axiosPrivate } from "../api/axios";
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import useAuth from "./useAuth";
 
 const useAxiosPrivate = () => {
     const { auth } = useAuth();
-    const authRef = useRef(auth);
-
-    // Keep authRef in sync with auth, but don't trigger interceptor re-registration
-    useEffect(() => {
-        authRef.current = auth;
-    }, [auth]);
 
     useEffect(() => {
         const requestIntercept = axiosPrivate.interceptors.request.use(
@@ -27,9 +21,9 @@ const useAxiosPrivate = () => {
                 } else {
                     fullUrl = config.url || '';
                 }
-                // Add initData to Authorization header if available (using ref to get latest value)
-                if (authRef.current?.initData && !config.headers['Authorization']) {
-                    config.headers['Authorization'] = `Bearer ${authRef.current.initData}`;
+                // Add initData to Authorization header if available
+                if (auth?.initData && !config.headers['Authorization']) {
+                    config.headers['Authorization'] = `Bearer ${auth.initData}`;
                 }
                 
                 // Add ngrok-skip-browser-warning header to bypass ngrok warning page
@@ -47,7 +41,7 @@ const useAxiosPrivate = () => {
         return () => {
             axiosPrivate.interceptors.request.eject(requestIntercept);
         }
-    }, []) // Empty dependency array - interceptor is set up once and uses ref for auth
+    }, [auth])
 
     return axiosPrivate;
 }

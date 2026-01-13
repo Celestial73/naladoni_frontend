@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { initData, useSignal, useLaunchParams } from "@tma.js/sdk-react";
 import { Placeholder, AppRoot } from '@telegram-apps/telegram-ui';
 import useAuth from '../hooks/useAuth';
-import axios from "../api/axios";
+import useAxios from '../hooks/useAxios';
 
 const Login = () => {
     const [isLoading, setIsLoading] = useState(true);
@@ -11,6 +11,7 @@ const Login = () => {
     const { auth, setAuth } = useAuth();
     const initDataRaw = useSignal(initData.raw);
     const lp = useLaunchParams();
+    const axios = useAxios();
 
     useEffect(() => {
         let isMounted = true;
