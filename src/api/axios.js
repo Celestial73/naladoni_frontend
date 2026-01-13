@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const BASE_URL = 'https://d73ffbedff24.ngrok-free.app/v1';
+// Use environment variable with fallback for development
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://d73ffbedff24.ngrok-free.app/v1';
 
 const axiosInstance = axios.create({
     baseURL: BASE_URL
