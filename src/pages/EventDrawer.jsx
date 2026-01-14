@@ -56,7 +56,7 @@ export function EventDrawer({ event, onClose, onLeave, onDelete, onEdit, onDelet
                     </div>
                 </div>
 
-                {/* Scrollable Content */}
+                {/* Scrollable C0ntent */}
                 <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
                     <EventInformation
                         event={event}
