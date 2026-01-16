@@ -4,8 +4,9 @@
  */
 
 import axiosInstance from '../../api/axios.js';
-import { getErrorMessage } from '../../utils/errorHandler.js';
-import { logger } from '../../utils/logger.js';
+import { baseServiceConfig } from './baseService.js';
+
+const SERVICE_NAME = 'authService';
 
 export const authService = {
   /**
@@ -15,33 +16,33 @@ export const authService = {
    * @returns {Promise<Object>} Authentication response
    */
   loginWithTelegram: async (initData, signal) => {
-    try {
-      const response = await axiosInstance.post(
-        '/auth/login-telegram',
-        {},
-        {
+    return baseServiceConfig.executeRequest(
+      async (abortSignal) => {
+        const config = baseServiceConfig.createRequestConfig(abortSignal, {
           headers: {
             Authorization: `Bearer ${initData}`
-          },
-          signal
+          }
+        });
+
+        const response = await axiosInstance.post(
+          '/auth/login-telegram',
+          {},
+          config
+        );
+
+        if (response?.status === 200 || response?.status === 201) {
+          return {
+            initData,
+            ...response.data
+          };
         }
-      );
 
-      if (response?.status === 200 || response?.status === 201) {
-        return {
-          initData,
-          ...response.data
-        };
-      }
-
-      throw new Error('Authentication failed');
-    } catch (error) {
-      if (error.name === 'AbortError' || error.name === 'CanceledError') {
-        throw error; // Re-throw abort errors without logging
-      }
-      logger.error('Authentication error:', error);
-      throw new Error(getErrorMessage(error));
-    }
+        throw new Error('Authentication failed');
+      },
+      SERVICE_NAME,
+      'loginWithTelegram',
+      { signal, logResponse: false } // Don't log auth responses for security
+    );
   },
 };
 

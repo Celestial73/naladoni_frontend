@@ -4,8 +4,9 @@
  */
 
 import { axiosPrivate } from '../../api/axios.js';
-import { getErrorMessage } from '../../utils/errorHandler.js';
-import { logger } from '../../utils/logger.js';
+import { baseServiceConfig } from './baseService.js';
+
+const SERVICE_NAME = 'profileService';
 
 export const profileService = {
   /**
@@ -14,42 +15,67 @@ export const profileService = {
    * @returns {Promise<Object>} Profile data
    */
   getMyProfile: async (signal) => {
-    try {
-      const response = await axiosPrivate.get('/profiles/me', { signal });
-      logger.debug('Fetched profile data:', response.data);
-      return response.data;
-    } catch (error) {
-      if (error.name === 'AbortError' || error.name === 'CanceledError') {
-        throw error; // Re-throw abort errors without logging
-      }
-      logger.error('Error fetching profile:', error);
-      throw new Error(getErrorMessage(error));
-    }
+    return baseServiceConfig.executeRequest(
+      async (abortSignal) => {
+        const config = baseServiceConfig.createRequestConfig(abortSignal);
+        const response = await axiosPrivate.get('/profiles/me', config);
+        return response.data;
+      },
+      SERVICE_NAME,
+      'getMyProfile',
+      { signal }
+    );
   },
 
   /**
    * Update current user's profile
    * @param {Object} profileData - Profile data to update
+   * @param {AbortSignal} [signal] - Optional AbortSignal for request cancellation
    * @returns {Promise<Object>} Updated profile data
    */
-  updateProfile: async (profileData) => {
-    try {
-      // Remove undefined fields
-      const payload = { ...profileData };
-      Object.keys(payload).forEach(key => {
-        if (payload[key] === undefined) {
-          delete payload[key];
-        }
-      });
+  updateProfile: async (profileData, signal) => {
+    return baseServiceConfig.executeRequest(
+      async (abortSignal) => {
+        const config = baseServiceConfig.createRequestConfig(abortSignal);
+        const cleanedData = baseServiceConfig.removeUndefined(profileData);
+        const response = await axiosPrivate.patch('/profiles/me', cleanedData, config);
+        return response.data;
+      },
+      SERVICE_NAME,
+      'updateProfile',
+      { signal }
+    );
+  },
 
-      logger.debug('Saving profile data:', payload);
-      const response = await axiosPrivate.patch('/profiles/me', payload);
-      logger.debug('Profile saved successfully:', response.data);
-      return response.data;
-    } catch (error) {
-      logger.error('Error saving profile:', error);
-      throw new Error(getErrorMessage(error));
-    }
+  /**
+   * Upload photos to profile
+   * @param {File[]} files - Array of File objects to upload (max 3)
+   * @param {AbortSignal} [signal] - Optional AbortSignal for request cancellation
+   * @returns {Promise<Object>} Updated profile data with photos array
+   */
+  uploadPhotos: async (files, signal) => {
+    return baseServiceConfig.executeRequest(
+      async (abortSignal) => {
+        const formData = new FormData();
+        
+        // Add each file to FormData with field name 'images'
+        files.forEach((file) => {
+          formData.append('images', file);
+        });
+
+        const config = baseServiceConfig.createRequestConfig(abortSignal, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+
+        const response = await axiosPrivate.post('/profiles/me/photos', formData, config);
+        return response.data;
+      },
+      SERVICE_NAME,
+      'uploadPhotos',
+      { signal }
+    );
   },
 };
 

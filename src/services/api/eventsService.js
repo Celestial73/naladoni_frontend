@@ -4,8 +4,9 @@
  */
 
 import { axiosPrivate } from '../../api/axios.js';
-import { getErrorMessage } from '../../utils/errorHandler.js';
-import { logger } from '../../utils/logger.js';
+import { baseServiceConfig } from './baseService.js';
+
+const SERVICE_NAME = 'eventsService';
 
 /**
  * Transform API event to UI format
@@ -35,17 +36,17 @@ export const eventsService = {
    * @returns {Promise<Array>} List of user's events
    */
   getMyEvents: async (signal) => {
-    try {
-      const response = await axiosPrivate.get('/events/me', { signal });
-      const events = response.data.results || response.data || [];
-      return events.map(transformEvent);
-    } catch (error) {
-      if (error.name === 'AbortError' || error.name === 'CanceledError') {
-        throw error; // Re-throw abort errors without logging
-      }
-      logger.error('Error fetching events:', error);
-      throw new Error(getErrorMessage(error));
-    }
+    return baseServiceConfig.executeRequest(
+      async (abortSignal) => {
+        const config = baseServiceConfig.createRequestConfig(abortSignal);
+        const response = await axiosPrivate.get('/events/me', config);
+        const events = response.data.results || response.data || [];
+        return events.map(transformEvent);
+      },
+      SERVICE_NAME,
+      'getMyEvents',
+      { signal }
+    );
   },
 
   /**
@@ -55,80 +56,94 @@ export const eventsService = {
    * @returns {Promise<Object>} Event data
    */
   getEvent: async (eventId, signal) => {
-    try {
-      const response = await axiosPrivate.get(`/events/${eventId}`, { signal });
-      return response.data;
-    } catch (error) {
-      if (error.name === 'AbortError' || error.name === 'CanceledError') {
-        throw error; // Re-throw abort errors without logging
-      }
-      logger.error('Error fetching event:', error);
-      throw new Error(getErrorMessage(error));
-    }
+    return baseServiceConfig.executeRequest(
+      async (abortSignal) => {
+        const config = baseServiceConfig.createRequestConfig(abortSignal);
+        const response = await axiosPrivate.get(`/events/${eventId}`, config);
+        return response.data;
+      },
+      SERVICE_NAME,
+      'getEvent',
+      { signal }
+    );
   },
 
   /**
    * Create a new event
    * @param {Object} eventData - Event data
+   * @param {AbortSignal} [signal] - Optional AbortSignal for request cancellation
    * @returns {Promise<Object>} Created event
    */
-  createEvent: async (eventData) => {
-    try {
-      const response = await axiosPrivate.post('/events/me', eventData);
-      logger.debug('Event created successfully:', response.data);
-      return response.data;
-    } catch (error) {
-      logger.error('Error creating event:', error);
-      throw new Error(getErrorMessage(error));
-    }
+  createEvent: async (eventData, signal) => {
+    return baseServiceConfig.executeRequest(
+      async (abortSignal) => {
+        const config = baseServiceConfig.createRequestConfig(abortSignal);
+        const cleanedData = baseServiceConfig.removeUndefined(eventData);
+        const response = await axiosPrivate.post('/events/me', cleanedData, config);
+        return response.data;
+      },
+      SERVICE_NAME,
+      'createEvent',
+      { signal }
+    );
   },
 
   /**
    * Update an event
    * @param {string|number} eventId - Event ID
    * @param {Object} eventData - Updated event data
+   * @param {AbortSignal} [signal] - Optional AbortSignal for request cancellation
    * @returns {Promise<Object>} Updated event
    */
-  updateEvent: async (eventId, eventData) => {
-    try {
-      const response = await axiosPrivate.patch(`/events/${eventId}`, eventData);
-      logger.debug('Event updated successfully:', response.data);
-      return response.data;
-    } catch (error) {
-      logger.error('Error updating event:', error);
-      throw new Error(getErrorMessage(error));
-    }
+  updateEvent: async (eventId, eventData, signal) => {
+    return baseServiceConfig.executeRequest(
+      async (abortSignal) => {
+        const config = baseServiceConfig.createRequestConfig(abortSignal);
+        const cleanedData = baseServiceConfig.removeUndefined(eventData);
+        const response = await axiosPrivate.patch(`/events/${eventId}`, cleanedData, config);
+        return response.data;
+      },
+      SERVICE_NAME,
+      'updateEvent',
+      { signal }
+    );
   },
 
   /**
    * Delete an event
    * @param {string|number} eventId - Event ID
+   * @param {AbortSignal} [signal] - Optional AbortSignal for request cancellation
    * @returns {Promise<void>}
    */
-  deleteEvent: async (eventId) => {
-    try {
-      await axiosPrivate.delete(`/events/me/${eventId}`);
-      logger.debug('Event deleted successfully');
-    } catch (error) {
-      logger.error('Error deleting event:', error);
-      throw new Error(getErrorMessage(error));
-    }
+  deleteEvent: async (eventId, signal) => {
+    return baseServiceConfig.executeRequest(
+      async (abortSignal) => {
+        const config = baseServiceConfig.createRequestConfig(abortSignal);
+        await axiosPrivate.delete(`/events/me/${eventId}`, config);
+      },
+      SERVICE_NAME,
+      'deleteEvent',
+      { signal }
+    );
   },
 
   /**
    * Delete a participant from an event
    * @param {string|number} eventId - Event ID
    * @param {string|number} participantId - Participant ID
+   * @param {AbortSignal} [signal] - Optional AbortSignal for request cancellation
    * @returns {Promise<void>}
    */
-  deleteParticipant: async (eventId, participantId) => {
-    try {
-      await axiosPrivate.delete(`/events/me/${eventId}/participants/${participantId}`);
-      logger.debug('Participant deleted successfully');
-    } catch (error) {
-      logger.error('Error deleting participant:', error);
-      throw new Error(getErrorMessage(error));
-    }
+  deleteParticipant: async (eventId, participantId, signal) => {
+    return baseServiceConfig.executeRequest(
+      async (abortSignal) => {
+        const config = baseServiceConfig.createRequestConfig(abortSignal);
+        await axiosPrivate.delete(`/events/me/${eventId}/participants/${participantId}`, config);
+      },
+      SERVICE_NAME,
+      'deleteParticipant',
+      { signal }
+    );
   },
 };
 
