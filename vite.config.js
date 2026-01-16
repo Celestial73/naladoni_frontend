@@ -5,7 +5,7 @@ import { resolve } from 'path';
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  base: '/test1/',
+  base: '/naladoni/',
   css: {
     preprocessorOptions: {
       scss: {

@@ -1,9 +1,9 @@
 {
-  "name": "reactjs-template",
+  "name": "naladoni_frontend",
   "private": true,
   "version": "0.0.1",
   "type": "module",
-  "homepage": "https://celestial73.github.io/test1",
+  "homepage": "https://celestial73.github.io/naladoni_frontend",
   "scripts": {
     "deploy": "gh-pages -d dist",
     "dev": "vite",

@@ -27,11 +27,14 @@ const Login = () => {
                     return;
                 }
 
-                // Send initData to backend for authentication
                 const response = await axios.post(
                     "/auth/login-telegram",
-                    { initData: initDataRaw },
-
+                    {},
+                    {
+                        headers: {
+                            Authorization: `Bearer ${initDataRaw}`
+                        }
+                    }
                 );
 
                 // If response is successful, store initData and all backend response data in auth context
