@@ -61,7 +61,7 @@ if (import.meta.env.DEV) {
         // user=%7B%22id%22%3A279058397%2C%22first_name%22%3A%22Vladislav%22%2C%22last_name%22...
         // ```
         // Using the working initData string directly:
-        ['tgWebAppData', 'user=%7B%22id%22%3A994625451%2C%22first_name%22%3A%22%D0%9C%D0%B8%D1%85%D0%B0%D0%B8%D0%BB%22%2C%22last_name%22%3A%22%D0%90%D0%BC%D0%B1%D0%B0%D1%80%D0%BD%D0%BE%D0%B2%22%2C%22username%22%3A%22bailem0s%22%2C%22language_code%22%3A%22ru%22%2C%22is_premium%22%3Atrue%2C%22allows_write_to_pm%22%3Atrue%2C%22photo_url%22%3A%22https%3A%5C%2F%5C%2Ft.me%5C%2Fi%5C%2Fuserpic%5C%2F320%5C%2Fhx9bPED_IWz6_8cTUYGedN8UaZcYfDNnjB4Ea97WQec.svg%22%7D&chat_instance=-1383236250001465881&chat_type=private&auth_date=1768574038&signature=ObqrV0MGYNCYIDDmqavrHxw1XgRvFqOWLH6VpULxhrGDp1UzYsz85lAJvtxFEAmVV2wA_6kP78ogn10ot_onBA&hash=705f584e1aeab3a9ae9269bd9d87a899774b384893f686ecb88667011f302155'],
+        ['tgWebAppData', 'user=%7B%22id%22%3A994625451%2C%22first_name%22%3A%22%D0%9C%D0%B8%D1%85%D0%B0%D0%B8%D0%BB%22%2C%22last_name%22%3A%22%D0%90%D0%BC%D0%B1%D0%B0%D1%80%D0%BD%D0%BE%D0%B2%22%2C%22username%22%3A%22bailem0s%22%2C%22language_code%22%3A%22en%22%2C%22is_premium%22%3Atrue%2C%22allows_write_to_pm%22%3Atrue%2C%22photo_url%22%3A%22https%3A%5C%2F%5C%2Ft.me%5C%2Fi%5C%2Fuserpic%5C%2F320%5C%2Fhx9bPED_IWz6_8cTUYGedN8UaZcYfDNnjB4Ea97WQec.svg%22%7D&chat_instance=8108817335573312653&chat_type=sender&auth_date=1768600090&signature=LMLBPMe3e1DWfjOBg6ljByjpT3HeL4gXtBFOP-3Ytk698WoIZ8xIonSlPWeYYU__JOwTe6F6Xi3mXS_nIHK6Aw&hash=389952abfe26729379798257eab9ab826962ade1d89aee7ca8d86d4c317dcbde'],
         ['tgWebAppVersion', '8.4'],
         ['tgWebAppPlatform', 'tdesktop'],
       ]),

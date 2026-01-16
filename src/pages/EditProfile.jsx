@@ -20,6 +20,7 @@ import {
 import { Page } from '@/components/Page.jsx';
 import useAuth from '@/hooks/useAuth';
 import { profileService } from '@/services/api/profileService.js';
+import { confirmAction } from '@/utils/confirmDialog.js';
 
 export function EditProfile() {
     const navigate = useNavigate();
@@ -42,6 +43,7 @@ export function EditProfile() {
     });
     const [selectedFiles, setSelectedFiles] = useState([]);
     const [uploadingPhotos, setUploadingPhotos] = useState(false);
+    const [deletingPhotos, setDeletingPhotos] = useState(false);
     const fileInputRef = useRef(null);
 
     // Fetch profile data on mount
@@ -281,6 +283,34 @@ export function EditProfile() {
         }
     };
 
+    const handleDeletePhoto = async (photoUrl) => {
+        const confirmed = await confirmAction(
+            'Are you sure you want to delete this photo?',
+            'Delete Photo'
+        );
+
+        if (!confirmed) {
+            return;
+        }
+
+        setDeletingPhotos(true);
+        setError(null);
+
+        try {
+            const response = await profileService.deletePhotos([photoUrl]);
+            
+            // Update formData with the new photos array from response
+            setFormData(prev => ({
+                ...prev,
+                photos: response.photos || []
+            }));
+        } catch (err) {
+            setError(err.message || 'Failed to delete photo');
+        } finally {
+            setDeletingPhotos(false);
+        }
+    };
+
     if (fetching) {
         return (
             <Page>
@@ -375,7 +405,7 @@ export function EditProfile() {
                                 mode="outline"
                                 size="m"
                                 onClick={() => fileInputRef.current?.click()}
-                                disabled={uploadingPhotos || loading}
+                                disabled={uploadingPhotos || deletingPhotos || loading}
                                 style={{ width: '100%', marginBottom: '12px' }}
                             >
                                 <ImageIcon size={16} style={{ marginRight: 8 }} />
@@ -418,7 +448,7 @@ export function EditProfile() {
                                         mode="filled"
                                         size="m"
                                         onClick={handleUploadPhotos}
-                                        disabled={uploadingPhotos || loading}
+                                        disabled={uploadingPhotos || deletingPhotos || loading}
                                         style={{ width: '100%' }}
                                     >
                                         {uploadingPhotos ? 'Uploading...' : 'Upload Photos'}
@@ -455,6 +485,30 @@ export function EditProfile() {
                                                         border: '1px solid var(--tgui--separator_color, #e0e0e0)'
                                                     }}
                                                 />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleDeletePhoto(photoUrl)}
+                                                    disabled={deletingPhotos || loading}
+                                                    style={{
+                                                        position: 'absolute',
+                                                        top: '4px',
+                                                        right: '4px',
+                                                        background: 'rgba(0, 0, 0, 0.6)',
+                                                        border: 'none',
+                                                        borderRadius: '50%',
+                                                        width: '24px',
+                                                        height: '24px',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        cursor: deletingPhotos || loading ? 'not-allowed' : 'pointer',
+                                                        opacity: deletingPhotos || loading ? 0.5 : 1,
+                                                        transition: 'opacity 0.2s'
+                                                    }}
+                                                    title="Delete photo"
+                                                >
+                                                    <Trash2 size={12} color="white" />
+                                                </button>
                                             </div>
                                         ))}
                                     </div>

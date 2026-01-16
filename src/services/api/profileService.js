@@ -77,5 +77,27 @@ export const profileService = {
       { signal }
     );
   },
+
+  /**
+   * Delete photos from profile
+   * @param {string[]} photoUrls - Array of photo URLs to delete
+   * @param {AbortSignal} [signal] - Optional AbortSignal for request cancellation
+   * @returns {Promise<Object>} Updated profile data with photos array
+   */
+  deletePhotos: async (photoUrls, signal) => {
+    return baseServiceConfig.executeRequest(
+      async (abortSignal) => {
+        const config = baseServiceConfig.createRequestConfig(abortSignal);
+        const response = await axiosPrivate.delete('/profiles/me/photos', {
+          ...config,
+          data: { photoUrls }
+        });
+        return response.data;
+      },
+      SERVICE_NAME,
+      'deletePhotos',
+      { signal }
+    );
+  },
 };
 
