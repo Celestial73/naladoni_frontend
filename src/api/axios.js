@@ -10,11 +10,11 @@ if (!BASE_URL) {
 }
 
 const axiosInstance = axios.create({
-    baseURL: BASE_URL
+    baseURL: `${BASE_URL}/v1`
 });
 
 export const axiosPrivate = axios.create({
-    baseURL: BASE_URL,
+    baseURL: `${BASE_URL}/v1`,
     headers: { 'Content-Type': 'application/json' }
 });
 
