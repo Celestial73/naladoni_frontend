@@ -196,7 +196,7 @@ export function EventDrawer({ event, onClose, onLeave, onDelete, onEdit, onDelet
                         )}
                     </div>
 
-                    {/* Pending Requests Section - Only for owners */}
+                    {/* Pending Requests Section - Only for ownerrs */}
                     {isOwner && (
                         <div style={{ padding: '0 20px 24px', borderTop: '1px solid var(--tgui--section_separator_color)', marginTop: 16 }}>
                             <List>
@@ -221,10 +221,9 @@ export function EventDrawer({ event, onClose, onLeave, onDelete, onEdit, onDelet
                                         </Cell>
                                     ) : (
                                         pendingLikes.map((like) => {
-                                            const userId = like.user_id || like.user?.id || like.user;
-                                            const userProfile = like.user_profile || like.user?.profile || like.user;
-                                            const userName = userProfile?.display_name || userProfile?.name || userProfile?.first_name || 'User';
-                                            const userAvatar = userProfile?.photo_url || userProfile?.avatar || userProfile?.image;
+                                            const user = like.user || {};
+                                            const userName = user.telegram_name || user.display_name || user.name || user.first_name || 'User';
+                                            const userAvatar = user.photo_url || user.avatar || user.image;
                                             const isProcessing = processingAction === like.id;
 
                                             return (
