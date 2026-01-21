@@ -68,10 +68,11 @@ export const feedService = {
    * Record user action on an event
    * @param {string} eventId - Event ID
    * @param {string} action - Action type: 'skip' or 'like'
+   * @param {string} [text] - Optional text message (for like action with message)
    * @param {AbortSignal} [signal] - Optional AbortSignal for request cancellation
    * @returns {Promise<Object>} Action response
    */
-  recordAction: async (eventId, action, signal) => {
+  recordAction: async (eventId, action, text, signal) => {
     return baseServiceConfig.executeRequest(
       async (abortSignal) => {
         const config = baseServiceConfig.createRequestConfig(abortSignal);
@@ -85,7 +86,12 @@ export const feedService = {
           action: action,
         };
         
-        const response = await axiosPrivate.post('/feed/action', payload, config);
+        // Add text if provided
+        if (text && text.trim()) {
+          payload.text = text.trim();
+        }
+        
+        const response = await axiosPrivate.post('/event-actions', payload, config);
         return response.data;
       },
       SERVICE_NAME,

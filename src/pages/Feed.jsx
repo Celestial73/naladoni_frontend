@@ -195,8 +195,10 @@ export function Feed() {
       window.setTimeout(() => {
         if (nextEvent) {
           setCurrentEvent(nextEvent);
+          setNoEventsAvailable(false);
         } else {
           setCurrentEvent(null);
+          setNoEventsAvailable(true);
         }
         setAnimating(false);
         setLoading(false);
@@ -237,8 +239,10 @@ export function Feed() {
       window.setTimeout(() => {
         if (nextEvent) {
           setCurrentEvent(nextEvent);
+          setNoEventsAvailable(false);
         } else {
           setCurrentEvent(null);
+          setNoEventsAvailable(true);
         }
         setAnimating(false);
         setLoading(false);
@@ -255,12 +259,55 @@ export function Feed() {
     }
   };
 
-  // Handle message popup (kept for UI but no API integration)
-  const handleSendMessage = () => {
-    if (!messageText.trim()) return;
-    // Message functionality not implemented yet
-    setShowMessagePopup(false);
-    setMessageText("");
+  // Handle message popup - send like action with text
+  const handleSendMessage = async () => {
+    if (!messageText.trim() || !currentEvent || animating || loading) return;
+
+    const textToSend = messageText.trim();
+    const eventId = currentEvent.id;
+
+    try {
+      setLoading(true);
+      setShowMessagePopup(false);
+      setMessageText("");
+      setAnimating(true);
+      setSwipeDirection('right');
+
+      // Record action with text and fetch next event in parallel
+      const actionPromise = feedService.recordAction(eventId, 'like', textToSend);
+      const nextEventPromise = fetchEventData();
+
+      // Wait for action to complete
+      await actionPromise;
+
+      // Wait for next event, then update state
+      const nextEvent = await nextEventPromise;
+      
+      // Small delay to let exit animation start, then swap events
+      window.setTimeout(() => {
+        if (nextEvent) {
+          setCurrentEvent(nextEvent);
+          setNoEventsAvailable(false);
+        } else {
+          setCurrentEvent(null);
+          setNoEventsAvailable(true);
+        }
+        setAnimating(false);
+        setLoading(false);
+        // Reset swipeDirection after enter animation completes
+        window.setTimeout(() => {
+          setSwipeDirection(null);
+        }, 300);
+      }, 150);
+    } catch (err) {
+      setAnimating(false);
+      setSwipeDirection(null);
+      setLoading(false);
+      setError(err.message || 'Failed to send message');
+      // Reopen popup on error so user can retry
+      setShowMessagePopup(true);
+      setMessageText(textToSend);
+    }
   };
 
   const handleCancelMessage = () => {
