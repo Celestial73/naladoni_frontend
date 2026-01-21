@@ -6,6 +6,7 @@ import { EventDrawer } from './EventDrawer.jsx';
 import { ProfileDrawer } from './ProfileDrawer.jsx';
 import { Page } from '@/components/Page.jsx';
 import { eventsService } from '@/services/api/eventsService.js';
+import { formatDateToDDMMYYYY } from '@/utils/dateFormatter.js';
 import {
   List,
   Section,
@@ -139,6 +140,40 @@ export function Events() {
     }
   };
 
+  const handleEventUpdate = async (updatedEventData) => {
+    // Transform the event data to match the UI format
+    const transformEvent = (apiEvent) => {
+      return {
+        id: apiEvent.id || apiEvent._id,
+        title: apiEvent.title,
+        date: formatDateToDDMMYYYY(apiEvent.date) || '',
+        location: apiEvent.location,
+        description: apiEvent.description,
+        attendees: apiEvent.participants || apiEvent.attendees || [],
+        maxAttendees: apiEvent.capacity,
+        image: apiEvent.image || apiEvent.imageUrl || apiEvent.creator_profile?.photo_url || null,
+        creator_profile: apiEvent.creator_profile,
+      };
+    };
+
+    const transformedEvent = transformEvent(updatedEventData);
+
+    // Update the event in the myEvents list
+    setMyEvents((prev) =>
+      prev.map((event) => {
+        if (event.id === transformedEvent.id) {
+          return transformedEvent;
+        }
+        return event;
+      })
+    );
+
+    // Update selectedEvent if it's the same event
+    if (selectedEvent && selectedEvent.id === transformedEvent.id) {
+      setSelectedEvent(transformedEvent);
+    }
+  };
+
   return (
     <Page>
       <List>
@@ -225,6 +260,7 @@ export function Events() {
             onDeleteParticipant={handleDeleteParticipant}
             isOwner={myEvents.some(e => e.id === selectedEvent.id)}
             onAttendeeClick={setSelectedAttendee}
+            onEventUpdate={handleEventUpdate}
           />
         )}
       </AnimatePresence>

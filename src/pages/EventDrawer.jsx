@@ -1,9 +1,94 @@
 import { X } from 'lucide-react';
-import { Button, IconButton } from '@telegram-apps/telegram-ui';
+import { Button, IconButton, List, Section, Cell, Avatar } from '@telegram-apps/telegram-ui';
 import { motion } from 'framer-motion';
+import { useState, useEffect } from 'react';
 import { EventInformation } from './EventInformation.jsx';
+import { eventActionsService } from '@/services/api/eventActionsService.js';
+import { eventsService } from '@/services/api/eventsService.js';
 
-export function EventDrawer({ event, onClose, onLeave, onDelete, onEdit, onDeleteParticipant, isOwner = false, onAttendeeClick }) {
+export function EventDrawer({ event, onClose, onLeave, onDelete, onEdit, onDeleteParticipant, isOwner = false, onAttendeeClick, onEventUpdate }) {
+    const [pendingLikes, setPendingLikes] = useState([]);
+    const [loadingPendingLikes, setLoadingPendingLikes] = useState(false);
+    const [errorPendingLikes, setErrorPendingLikes] = useState(null);
+    const [processingAction, setProcessingAction] = useState(null);
+
+    // Fetch pending likes when owner views their event
+    useEffect(() => {
+        if (!isOwner || !event?.id) {
+            setPendingLikes([]);
+            return;
+        }
+
+        const abortController = new AbortController();
+
+        const fetchPendingLikes = async () => {
+            try {
+                setLoadingPendingLikes(true);
+                setErrorPendingLikes(null);
+                const likes = await eventActionsService.getPendingLikesForEvent(event.id, abortController.signal);
+                if (!abortController.signal.aborted) {
+                    setPendingLikes(likes || []);
+                }
+            } catch (err) {
+                if (err.name !== 'AbortError' && err.name !== 'CanceledError') {
+                    if (!abortController.signal.aborted) {
+                        setErrorPendingLikes(err.message || 'Failed to load pending requests');
+                    }
+                }
+            } finally {
+                if (!abortController.signal.aborted) {
+                    setLoadingPendingLikes(false);
+                }
+            }
+        };
+
+        fetchPendingLikes();
+
+        return () => {
+            abortController.abort();
+        };
+    }, [isOwner, event?.id]);
+
+    const handleAcceptLike = async (eventActionId) => {
+        try {
+            setProcessingAction(eventActionId);
+            await eventActionsService.acceptLike(eventActionId);
+            
+            // Remove from pending list
+            setPendingLikes((prev) => prev.filter((like) => like.id !== eventActionId));
+            
+            // Refresh event data to show new participant
+            if (event?.id) {
+                try {
+                    const updatedEvent = await eventsService.getEvent(event.id);
+                    if (onEventUpdate) {
+                        onEventUpdate(updatedEvent);
+                    }
+                } catch (err) {
+                    // Silently fail - event will refresh on next open
+                }
+            }
+        } catch (err) {
+            setErrorPendingLikes(err.message || 'Failed to accept request');
+        } finally {
+            setProcessingAction(null);
+        }
+    };
+
+    const handleRejectLike = async (eventActionId) => {
+        try {
+            setProcessingAction(eventActionId);
+            await eventActionsService.rejectLike(eventActionId);
+            
+            // Remove from pending list
+            setPendingLikes((prev) => prev.filter((like) => like.id !== eventActionId));
+        } catch (err) {
+            setErrorPendingLikes(err.message || 'Failed to reject request');
+        } finally {
+            setProcessingAction(null);
+        }
+    };
+
     return (
         <motion.div
             initial={{ opacity: 0 }}
@@ -110,6 +195,74 @@ export function EventDrawer({ event, onClose, onLeave, onDelete, onEdit, onDelet
                             </>
                         )}
                     </div>
+
+                    {/* Pending Requests Section - Only for owners */}
+                    {isOwner && (
+                        <div style={{ padding: '0 20px 24px', borderTop: '1px solid var(--tgui--section_separator_color)', marginTop: 16 }}>
+                            <List>
+                                <Section header="Pending Requests">
+                                    {loadingPendingLikes ? (
+                                        <Cell description="Loading requests...">
+                                            <div style={{ padding: 20, textAlign: 'center', opacity: 0.5 }}>
+                                                Loading...
+                                            </div>
+                                        </Cell>
+                                    ) : errorPendingLikes ? (
+                                        <Cell description="Error loading requests">
+                                            <div style={{ padding: 20, textAlign: 'center', color: 'var(--tgui--destructive_text_color)', fontSize: 13 }}>
+                                                {errorPendingLikes}
+                                            </div>
+                                        </Cell>
+                                    ) : pendingLikes.length === 0 ? (
+                                        <Cell description="No pending requests">
+                                            <div style={{ padding: 20, textAlign: 'center', opacity: 0.5, fontSize: 13 }}>
+                                                No pending requests
+                                            </div>
+                                        </Cell>
+                                    ) : (
+                                        pendingLikes.map((like) => {
+                                            const userId = like.user_id || like.user?.id || like.user;
+                                            const userProfile = like.user_profile || like.user?.profile || like.user;
+                                            const userName = userProfile?.display_name || userProfile?.name || userProfile?.first_name || 'User';
+                                            const userAvatar = userProfile?.photo_url || userProfile?.avatar || userProfile?.image;
+                                            const isProcessing = processingAction === like.id;
+
+                                            return (
+                                                <Cell
+                                                    key={like.id}
+                                                    before={<Avatar src={userAvatar} size={40} />}
+                                                    description={like.text ? like.text : undefined}
+                                                    multiline={!!like.text}
+                                                >
+                                                    {userName}
+                                                    <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
+                                                        <Button
+                                                            mode="filled"
+                                                            size="s"
+                                                            onClick={() => handleAcceptLike(like.id)}
+                                                            disabled={isProcessing}
+                                                            style={{ flex: 1 }}
+                                                        >
+                                                            Accept
+                                                        </Button>
+                                                        <Button
+                                                            mode="bezeled"
+                                                            size="s"
+                                                            onClick={() => handleRejectLike(like.id)}
+                                                            disabled={isProcessing}
+                                                            style={{ flex: 1, color: 'var(--tgui--destructive_text_color)' }}
+                                                        >
+                                                            Reject
+                                                        </Button>
+                                                    </div>
+                                                </Cell>
+                                            );
+                                        })
+                                    )}
+                                </Section>
+                            </List>
+                        </div>
+                    )}
                 </div>
             </motion.div>
         </motion.div>
