@@ -15,44 +15,14 @@ import {
   Avatar
 } from '@telegram-apps/telegram-ui';
 
-const initialAcceptedRequests = [
-  {
-    id: 2,
-    title: "Morning Yoga in the Park",
-    date: "Saturday, Dec 23",
-    time: "8:30 AM",
-    location: "Central Park",
-    host: "Jessica M.",
-    maxAttendees: 10,
-    image: "https://images.unsplash.com/photo-1544367563-12123d8965cd?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx5b2dhJTIwb3V0ZG9vcnN8ZW58MXx8fHwxNzY1NjU2MDE1fDA&ixlib=rb-4.1.0&q=80&w=1080",
-    attendees: [
-      { id: '5', name: 'Jessica', age: 27, image: 'https://images.unsplash.com/photo-1594318223885-20dc4b889f9e?w=150', bio: 'Yoga instructor and wellness coach' },
-      { id: '6', name: 'David', age: 29, image: 'https://images.unsplash.com/photo-1695485121912-25c7ea05119c?w=150', bio: 'Fitness enthusiast' },
-      { id: '7', name: 'Rachel', age: 25, image: 'https://images.unsplash.com/photo-1581065112742-eb9b90ecf0a3?w=150', bio: 'Meditation practitioner' },
-    ]
-  },
-  {
-    id: 3,
-    title: "Photography Walk",
-    date: "Sunday, Dec 24",
-    time: "2:00 PM",
-    location: "Brooklyn Bridge",
-    host: "David K.",
-    maxAttendees: 8,
-    image: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwaG90b2dyYXBoeSUyMHdhbGt8ZW58MXx8fHwxNzY1NjU2MDE1fDA&ixlib=rb-4.1.0&q=80&w=1080",
-    attendees: [
-      { id: '11', name: 'Ryan', age: 26, image: 'https://images.unsplash.com/photo-1695485121912-25c7ea05119c?w=150', bio: 'Photographer' },
-      { id: '12', name: 'Mia', age: 29, image: 'https://images.unsplash.com/photo-1594318223885-20dc4b889f9e?w=150', bio: 'Designer' },
-    ]
-  }
-];
-
 export function Events() {
   const navigate = useNavigate();
   const [myEvents, setMyEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [acceptedRequests, setAcceptedRequests] = useState(initialAcceptedRequests);
+  const [acceptedRequests, setAcceptedRequests] = useState([]);
+  const [loadingAccepted, setLoadingAccepted] = useState(true);
+  const [errorAccepted, setErrorAccepted] = useState(null);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [selectedAttendee, setSelectedAttendee] = useState(null);
 
@@ -83,10 +53,41 @@ export function Events() {
     };
   }, []);
 
-  const handleLeaveEvent = (eventId) => {
-    // In a real app, this would make an API call
-    setAcceptedRequests((prev) => prev.filter((e) => e.id !== eventId));
-    setSelectedEvent(null);
+  useEffect(() => {
+    const abortController = new AbortController();
+
+    const fetchAcceptedEvents = async () => {
+      try {
+        setLoadingAccepted(true);
+        setErrorAccepted(null);
+        const events = await eventsService.getAcceptedEvents(abortController.signal);
+        setAcceptedRequests(events);
+      } catch (err) {
+        if (err.name !== 'AbortError' && err.name !== 'CanceledError') {
+          setErrorAccepted(err.message || 'Failed to load accepted events');
+        }
+      } finally {
+        if (!abortController.signal.aborted) {
+          setLoadingAccepted(false);
+        }
+      }
+    };
+
+    fetchAcceptedEvents();
+
+    return () => {
+      abortController.abort();
+    };
+  }, []);
+
+  const handleLeaveEvent = async (eventId) => {
+    try {
+      await eventsService.leaveEvent(eventId);
+      setAcceptedRequests((prev) => prev.filter((e) => e.id !== eventId));
+      setSelectedEvent(null);
+    } catch (err) {
+      setErrorAccepted(err.message || 'Failed to leave event');
+    }
   };
 
   const handleDeleteEvent = async (eventId) => {
@@ -228,16 +229,33 @@ export function Events() {
 
         {/* Section 2: Accepted Requests */}
         <Section header="Accepted Requests">
-          {acceptedRequests.length > 0 ? (
+          {loadingAccepted ? (
+            <div style={{ padding: 20, textAlign: 'center', opacity: 0.5 }}>
+              Loading accepted events...
+            </div>
+          ) : errorAccepted ? (
+            <div style={{ padding: 20, textAlign: 'center', color: 'var(--tgui--destructive_text_color)' }}>
+              {errorAccepted}
+            </div>
+          ) : acceptedRequests.length > 0 ? (
             acceptedRequests.map((event) => (
               <Cell
                 key={event.id}
                 onClick={() => setSelectedEvent(event)}
-                before={<Avatar src={event.image} size={48} />}
-                description={`${event.date} • Host: ${event.host}`}
-                after={<div style={{ fontSize: 12, color: 'var(--tgui--link_color)' }}>Joined</div>}
+                before={<Avatar src={event.image || event.creator_profile?.photos?.[0]} size={48} />}
+                description={event.date || ''}
+                after={
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', fontSize: 12, opacity: 0.6 }}>
+                    <span>{event.attendees?.length || 0}/{event.maxAttendees}</span>
+                    <span>Guests</span>
+                  </div>
+                }
               >
                 {event.title}
+                <div style={{ fontSize: 12, opacity: 0.7, marginTop: 2 }}>
+                  {event.location}
+                  {event.creator_profile?.display_name && ` • Host: ${event.creator_profile.display_name}`}
+                </div>
               </Cell>
             ))
           ) : (
@@ -265,7 +283,7 @@ export function Events() {
         )}
       </AnimatePresence>
 
-      {/* Attendee Profile Drawer */}
+      {/* Attendee Profile Drawe4r */}
       <AnimatePresence>
         {selectedAttendee && (
           <ProfileDrawer

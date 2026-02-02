@@ -23,7 +23,7 @@ const transformEvent = (apiEvent) => {
     description: apiEvent.description,
     attendees: apiEvent.participants || apiEvent.attendees || [],
     maxAttendees: apiEvent.capacity,
-    image: apiEvent.image || apiEvent.imageUrl || apiEvent.creator_profile?.photo_url || null,
+    image: apiEvent.image || apiEvent.imageUrl || apiEvent.creator_profile?.photos?.[0] || apiEvent.creator_profile?.photo_url || null,
     creator_profile: apiEvent.creator_profile,
   };
 };
@@ -141,6 +141,43 @@ export const eventsService = {
       },
       SERVICE_NAME,
       'deleteParticipant',
+      { signal }
+    );
+  },
+
+  /**
+   * Get accepted events (events user is a participant of)
+   * @param {AbortSignal} [signal] - Optional AbortSignal for request cancellation
+   * @returns {Promise<Array>} List of accepted events
+   */
+  getAcceptedEvents: async (signal) => {
+    return baseServiceConfig.executeRequest(
+      async (abortSignal) => {
+        const config = baseServiceConfig.createRequestConfig(abortSignal);
+        const response = await axiosPrivate.get('/events/me/accepted', config);
+        const events = response.data.results || response.data || [];
+        return events.map(transformEvent);
+      },
+      SERVICE_NAME,
+      'getAcceptedEvents',
+      { signal }
+    );
+  },
+
+  /**
+   * Leave an event (for participants, not hosts)
+   * @param {string|number} eventId - Event ID
+   * @param {AbortSignal} [signal] - Optional AbortSignal for request cancellation
+   * @returns {Promise<void>}
+   */
+  leaveEvent: async (eventId, signal) => {
+    return baseServiceConfig.executeRequest(
+      async (abortSignal) => {
+        const config = baseServiceConfig.createRequestConfig(abortSignal);
+        await axiosPrivate.post(`/events/me/${eventId}/leave`, {}, config);
+      },
+      SERVICE_NAME,
+      'leaveEvent',
       { signal }
     );
   },
