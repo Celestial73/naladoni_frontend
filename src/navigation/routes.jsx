@@ -1,7 +1,7 @@
 import { InitDataPage } from '@/pages/InitDataPage.jsx';
 import { LaunchParamsPage } from '@/pages/LaunchParamsPage.jsx';
 import { ThemeParamsPage } from '@/pages/ThemeParamsPage.jsx';
-import { Profile } from '@/pages/Profile.jsx';
+import Profile from '@/pages/testFigroot.jsx';
 import { EditProfile } from '@/pages/EditProfile.jsx';
 import { Feed } from '@/pages/Feed.jsx';
 import { Events } from '@/pages/Events.jsx';
