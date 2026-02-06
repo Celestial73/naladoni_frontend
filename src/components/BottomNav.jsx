@@ -13,15 +13,6 @@ export function BottomNav() {
     ];
 
     return (
-        <div
-            style={{
-                backgroundColor: 'var(--tgui--bg_color)',
-                flexShrink: 0,
-                position: 'relative',
-                zIndex: 10,
-                borderTop: '1px solid var(--tgui--separator_color, rgba(0, 0, 0, 0.1))'
-            }}
-        >
             <Tabbar>
                 {tabs.map((tab) => {
                     const Icon = tab.icon;
@@ -39,6 +30,5 @@ export function BottomNav() {
                     );
                 })}
             </Tabbar>
-        </div>
     );
 }

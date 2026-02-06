@@ -1,16 +1,36 @@
 import { Outlet } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { initData, useSignal, useLaunchParams } from "@tma.js/sdk-react";
-import { Placeholder, AppRoot } from '@telegram-apps/telegram-ui';
+import { Placeholder, AppRoot, List } from '@telegram-apps/telegram-ui';
 import useAuth from '../hooks/useAuth';
 import { authService } from '../services/api/authService.js';
+import { DisplayData } from '@/components/DisplayData/DisplayData.jsx';
+import { Page } from '@/components/Page.jsx';
 
 const Login = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [authError, setAuthError] = useState(false);
     const { auth, setAuth } = useAuth();
     const initDataRaw = useSignal(initData.raw);
+    const initDataState = useSignal(initData.state);
     const lp = useLaunchParams();
+
+    const initDataRows = useMemo(() => {
+        if (!initDataState || !initDataRaw) {
+            return;
+        }
+        return [
+            { title: 'raw', value: initDataRaw },
+            ...Object.entries(initDataState).reduce((acc, [title, value]) => {
+                if (value instanceof Date) {
+                    acc.push({ title, value: value.toISOString() });
+                } else if (!value || typeof value !== 'object') {
+                    acc.push({ title, value });
+                }
+                return acc;
+            }, []),
+        ];
+    }, [initDataState, initDataRaw]);
 
     useEffect(() => {
         let isMounted = true;
@@ -65,10 +85,17 @@ const Login = () => {
                 appearance="light"
                 platform={['macos', 'ios'].includes(lp.tgWebAppPlatform) ? 'ios' : 'base'}
             >
-                <Placeholder
-                    header="Authentication Failed"
-                    description="Unable to authenticate. Please try again later."
-                />
+                <Page>
+                    <Placeholder
+                        header="Authentication Failed"
+                        description="Unable to authenticate. Please try again later."
+                    />
+                    {initDataRows && (
+                        <List>
+                            <DisplayData rows={initDataRows} />
+                        </List>
+                    )}
+                </Page>
             </AppRoot>
         );
     }

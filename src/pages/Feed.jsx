@@ -418,7 +418,7 @@ export function Feed() {
         )}
 
         {/* Main area */}
-        <main style={{ position: 'relative', flex: 1, display: 'flex', flexDirection: 'column', padding: '0 16px 80px', justifyContent: 'center' }}>
+        <main style={{ position: 'relative', flex: 1, display: 'flex', flexDirection: 'column', padding: '0 16px', justifyContent: 'center' }}>
           {noEventsAvailable && !fetching ? (
             <div style={{ padding: '20px', textAlign: 'center' }}>
               <div style={{

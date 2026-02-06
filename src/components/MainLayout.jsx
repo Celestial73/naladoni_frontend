@@ -19,7 +19,9 @@ export function MainLayout() {
           )}
         </AnimatePresence>
       </div>
-      <BottomNav />
+      <div>
+        <BottomNav />
+      </div>
     </div>
   );
 }

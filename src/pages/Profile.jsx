@@ -155,7 +155,7 @@ export function Profile() {
     if (loading) {
         return (
             <Page>
-                <List style={{ paddingBottom: '80px' }}>
+                <List>
                     <Section>
                         <Cell>
                             <div style={{ textAlign: 'center', padding: '40px 20px' }}>
@@ -172,7 +172,7 @@ export function Profile() {
     if (error && !profileData.name) {
         return (
             <Page>
-                <List style={{ paddingBottom: '80px' }}>
+                <List>
                     <Section>
                         <Cell>
                             <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--tgui--error_color)' }}>
