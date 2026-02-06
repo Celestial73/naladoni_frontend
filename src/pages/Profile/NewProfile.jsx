@@ -1,45 +1,166 @@
+import { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Page } from '@/components/Layout/Page.jsx';
 import { ProfileCarousel } from '@/components/Profile/ProfileCarousel.jsx';
 import { ProfileInfoCard } from '@/components/Profile/ProfileInfoCard.jsx';
 import { HalftoneBackground } from '@/components/HalftoneBackground.jsx';
-import { Coffee, Music, Plane, BookOpen, Dumbbell, Pen } from 'lucide-react';
+import { Info, Pen } from 'lucide-react';
 import { colors } from '@/constants/colors.js';
-import { useNavigate } from 'react-router-dom';
-import profileImage1 from '../../../assets/photo_2025-12-14_19-07-23.jpg';
-import profileImage2 from '../../../assets/photo_2026-01-21_19-16-39.jpg';
+import useAuth from '@/hooks/useAuth';
+import { profileService } from '@/services/api/profileService.js';
 
-const photos = [profileImage1, profileImage2];
-
-const bio = "I love long walks on the beach, exploring new coffee shops, and spontaneous road trips. Always looking to meet new people and make meaningful connections. Life is an adventure — let's share it together!";
-
-const funFacts = [
-    { title: 'Coffee Addict', text: "Can't start my day without a double espresso", icon: <Coffee size={22} color={colors.profilePrimary} /> },
-    { title: 'Music Lover', text: 'Guitar player for 10 years', icon: <Music size={22} color={colors.profilePrimary} /> },
-    { title: 'World Traveler', text: 'Visited 23 countries and counting', icon: <Plane size={22} color={colors.profilePrimary} /> },
-    { title: 'Bookworm', text: 'Read 52 books last year', icon: <BookOpen size={22} color={colors.profilePrimary} /> },
-    { title: 'Fitness Enthusiast', text: 'Morning gym routine, rain or shine', icon: <Dumbbell size={22} color={colors.profilePrimary} /> },
-];
-
-const interests = [
-    { label: 'Photography', color: '#e74c3c' },
-    { label: 'Hiking', color: '#27ae60' },
-    { label: 'Cooking', color: '#f39c12' },
-    { label: 'Yoga', color: '#8e44ad' },
-    { label: 'Travel', color: '#2980b9' },
-    { label: 'Music', color: '#e67e22' },
-    { label: 'Art', color: '#1abc9c' },
-    { label: 'Cinema', color: '#c0392b' },
+// Rotating palette for interest chips
+const INTEREST_COLORS = [
+    '#e74c3c', '#27ae60', '#f39c12', '#8e44ad',
+    '#2980b9', '#e67e22', '#1abc9c', '#c0392b',
+    '#16a085', '#d35400', '#2c3e50', '#7f8c8d',
 ];
 
 export function NewProfile() {
     const navigate = useNavigate();
+    const { auth } = useAuth();
+
+    const [profileData, setProfileData] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    // Fetch profile data from backend on component mount
+    useEffect(() => {
+        if (!auth?.initData) {
+            setLoading(false);
+            return;
+        }
+
+        const abortController = new AbortController();
+
+        const fetchProfile = async () => {
+            try {
+                setLoading(true);
+                setError(null);
+                const response = await profileService.getMyProfile(abortController.signal);
+
+                if (response) {
+                    setProfileData(response);
+                }
+            } catch (err) {
+                if (err.name !== 'AbortError' && err.name !== 'CanceledError') {
+                    setError(err.response?.data?.message || err.message || 'Failed to fetch profile');
+                }
+            } finally {
+                if (!abortController.signal.aborted) {
+                    setLoading(false);
+                }
+            }
+        };
+
+        fetchProfile();
+
+        return () => {
+            abortController.abort();
+        };
+    }, [auth?.initData]);
+
+    // Map backend response to component-friendly shapes
+    const name = profileData?.display_name || auth.user?.name || '';
+    const age = profileData?.age ?? null;
+    const photos = profileData?.photos || [];
+    const bio = profileData?.bio || '';
+    const showBio = profileData?.showBio !== false;
+    const showInterests = profileData?.showInterests !== false;
+
+    // Map custom_fields {title, value} → items {title, text, icon}
+    const items = useMemo(() => {
+        const fields = profileData?.custom_fields || [];
+        return fields.map((field) => ({
+            title: field.title || '',
+            text: field.value || '',
+            icon: <Info size={22} color={colors.profilePrimary} />,
+        }));
+    }, [profileData?.custom_fields]);
+
+    // Map interests (strings) → {label, color}
+    const interests = useMemo(() => {
+        const raw = profileData?.interests || [];
+        return raw.map((interest, index) => ({
+            label: typeof interest === 'string' ? interest : interest.name || interest.label || '',
+            color: INTEREST_COLORS[index % INTEREST_COLORS.length],
+        }));
+    }, [profileData?.interests]);
+
+    // -- Loading state --
+    if (loading) {
+        return (
+            <Page>
+                <div style={{
+                    backgroundColor: colors.profilePrimary,
+                    minHeight: '100vh',
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    position: 'relative',
+                    overflow: 'hidden'
+                }}>
+                    <HalftoneBackground color={colors.profilePrimaryDark} />
+                    <div style={{
+                        position: 'relative',
+                        zIndex: 1,
+                        color: colors.white,
+                        fontSize: '1.1em',
+                        fontWeight: '500',
+                        opacity: 0.85
+                    }}>
+                        Loading profile...
+                    </div>
+                </div>
+            </Page>
+        );
+    }
+
+    // -- Error state (no profile data at all) --
+    if (error && !profileData) {
+        return (
+            <Page>
+                <div style={{
+                    backgroundColor: colors.profilePrimary,
+                    minHeight: '100vh',
+                    width: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    padding: '2em'
+                }}>
+                    <HalftoneBackground color={colors.profilePrimaryDark} />
+                    <div style={{
+                        position: 'relative',
+                        zIndex: 1,
+                        color: colors.white,
+                        textAlign: 'center'
+                    }}>
+                        <div style={{ fontSize: '1.2em', fontWeight: '600', marginBottom: '0.5em' }}>
+                            Error loading profile
+                        </div>
+                        <div style={{ fontSize: '0.9em', opacity: 0.8 }}>
+                            {error}
+                        </div>
+                    </div>
+                </div>
+            </Page>
+        );
+    }
+
+    // Determine what to show in the info card
+    const showInfoCard = (showBio && bio) || items.length > 0 || (showInterests && interests.length > 0);
 
     return (
         <Page>
-            <div style={{ 
-                backgroundColor: colors.profilePrimary, 
-                minHeight: '100vh', 
-                width: '100%', 
+            <div style={{
+                backgroundColor: colors.profilePrimary,
+                minHeight: '100vh',
+                width: '100%',
                 padding: '2%',
                 boxSizing: 'border-box',
                 display: 'flex',
@@ -74,20 +195,74 @@ export function NewProfile() {
                     <Pen size={18} color={colors.profilePrimary} />
                 </button>
 
-                {/* Carousel Container */}
-                <div style={{
-                    width: '100%',
-                    maxWidth: '70%',
-                    marginTop: '2%',
-                    position: 'relative',
-                    zIndex: 1
-                }}>
-                    <ProfileCarousel photos={photos} name="Alexandra bullshidova" age={24} />
-                </div>
+                {/* Inline error banner (profile loaded but with a warning) */}
+                {error && profileData && (
+                    <div style={{
+                        position: 'relative',
+                        zIndex: 1,
+                        width: '90%',
+                        marginTop: '2%',
+                        padding: '0.75em 1em',
+                        backgroundColor: 'rgba(0,0,0,0.25)',
+                        borderRadius: '12px',
+                        color: colors.white,
+                        fontSize: '0.85em',
+                        textAlign: 'center'
+                    }}>
+                        {error}
+                    </div>
+                )}
 
-                <div style={{ width: '100%', marginTop: '5%', marginBottom: '5%', display: 'flex', justifyContent: 'center', position: 'relative', zIndex: 1 }}>
-                    <ProfileInfoCard bio={bio} items={funFacts} interests={interests} />
-                </div>
+                {/* Carousel Container */}
+                {photos.length > 0 && (
+                    <div style={{
+                        width: '100%',
+                        maxWidth: '70%',
+                        marginTop: '2%',
+                        position: 'relative',
+                        zIndex: 1
+                    }}>
+                        <ProfileCarousel photos={photos} name={name} age={age} />
+                    </div>
+                )}
+
+                {/* Fallback when no photos — show name/age as text */}
+                {photos.length === 0 && name && (
+                    <div style={{
+                        position: 'relative',
+                        zIndex: 1,
+                        marginTop: '10%',
+                        color: colors.white,
+                        textAlign: 'center'
+                    }}>
+                        <div style={{
+                            fontSize: '1.6em',
+                            fontWeight: '700',
+                            textShadow: `0 1px 4px ${colors.shadowText}`
+                        }}>
+                            {name}{age != null ? `, ${age}` : ''}
+                        </div>
+                    </div>
+                )}
+
+                {/* Info Card */}
+                {showInfoCard && (
+                    <div style={{
+                        width: '100%',
+                        marginTop: '5%',
+                        marginBottom: '5%',
+                        display: 'flex',
+                        justifyContent: 'center',
+                        position: 'relative',
+                        zIndex: 1
+                    }}>
+                        <ProfileInfoCard
+                            bio={showBio ? bio : null}
+                            items={items}
+                            interests={showInterests ? interests : []}
+                        />
+                    </div>
+                )}
 
             </div>
         </Page>

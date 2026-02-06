@@ -1,31 +1,30 @@
-import { useRef, useCallback } from 'react';
+import { useRef, useCallback, useEffect } from 'react';
 import { X, Plus } from 'lucide-react';
 import { colors } from '@/constants/colors.js';
 
-function AutoResizeTextarea({ defaultValue, placeholder, onChange, style }) {
+function AutoResizeTextarea({ value, placeholder, onChange, style }) {
     const ref = useRef(null);
 
-    const handleInput = useCallback((e) => {
+    useEffect(() => {
+        if (ref.current) {
+            ref.current.style.height = 'auto';
+            ref.current.style.height = `${ref.current.scrollHeight}px`;
+        }
+    }, [value]);
+
+    const handleChange = useCallback((e) => {
         const el = e.target;
         el.style.height = 'auto';
         el.style.height = `${el.scrollHeight}px`;
         onChange?.(e);
     }, [onChange]);
 
-    const handleRef = useCallback((el) => {
-        ref.current = el;
-        if (el) {
-            el.style.height = 'auto';
-            el.style.height = `${el.scrollHeight}px`;
-        }
-    }, []);
-
     return (
         <textarea
-            ref={handleRef}
-            defaultValue={defaultValue}
+            ref={ref}
+            value={value}
             placeholder={placeholder}
-            onInput={handleInput}
+            onChange={handleChange}
             rows={1}
             style={{
                 display: 'block',
@@ -55,7 +54,7 @@ export function EditInfoList({ items, onTitleChange, onTextChange, onIconClick, 
             }}>
                 {items.map((item, index, arr) => (
                     <div
-                        key={index}
+                        key={item.id || index}
                         style={{
                             display: 'flex',
                             alignItems: 'center',
@@ -67,7 +66,7 @@ export function EditInfoList({ items, onTitleChange, onTextChange, onIconClick, 
                     >
                         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.4em' }}>
                             <AutoResizeTextarea
-                                defaultValue={item.title}
+                                value={item.title || ''}
                                 placeholder="Заголовок"
                                 onChange={(e) => onTitleChange?.(index, e.target.value)}
                                 style={{
@@ -77,7 +76,7 @@ export function EditInfoList({ items, onTitleChange, onTextChange, onIconClick, 
                                 }}
                             />
                             <AutoResizeTextarea
-                                defaultValue={item.text}
+                                value={item.text || ''}
                                 placeholder="Описание"
                                 onChange={(e) => onTextChange?.(index, e.target.value)}
                                 style={{
