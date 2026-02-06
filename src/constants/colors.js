@@ -1,6 +1,8 @@
 export const colors = {
     profilePrimary: '#d92326',
     profilePrimaryDark: 'rgb(129, 0, 0)',
+    eventPrimary: '#1a8f3f',
+    feedPrimary: '#c47a1a',
     white: '#fff',
     whiteTransparent: 'rgba(255, 255, 255, 0.4)',
     black: '#222',
