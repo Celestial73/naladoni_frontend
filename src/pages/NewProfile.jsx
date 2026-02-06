@@ -2,8 +2,9 @@ import { Page } from '@/components/Page.jsx';
 import { ProfileCarousel } from '@/components/ProfileCarousel.jsx';
 import { ProfileInfoCard } from '@/components/ProfileInfoCard.jsx';
 import { HalftoneBackground } from '@/components/HalftoneBackground.jsx';
-import { Coffee, Music, Plane, BookOpen, Dumbbell } from 'lucide-react';
+import { Coffee, Music, Plane, BookOpen, Dumbbell, Pen } from 'lucide-react';
 import { colors } from '@/constants/colors.js';
+import { useNavigate } from 'react-router-dom';
 import profileImage1 from '../../assets/photo_2025-12-14_19-07-23.jpg';
 import profileImage2 from '../../assets/photo_2026-01-21_19-16-39.jpg';
 
@@ -31,6 +32,7 @@ const interests = [
 ];
 
 export function NewProfile() {
+    const navigate = useNavigate();
 
     return (
         <Page>
@@ -48,6 +50,29 @@ export function NewProfile() {
                 overflow: 'hidden'
             }}>
                 <HalftoneBackground color={colors.profilePrimaryDark} />
+
+                {/* Edit Button */}
+                <button
+                    onClick={() => navigate('/profile/edit')}
+                    style={{
+                        position: 'fixed',
+                        top: '1em',
+                        right: '1em',
+                        zIndex: 2,
+                        width: '42px',
+                        height: '42px',
+                        borderRadius: '50%',
+                        backgroundColor: colors.white,
+                        border: 'none',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        boxShadow: '0 2px 6px rgba(0, 0, 0, 0.2)'
+                    }}
+                >
+                    <Pen size={18} color={colors.profilePrimary} />
+                </button>
 
                 {/* Carousel Container */}
                 <div style={{

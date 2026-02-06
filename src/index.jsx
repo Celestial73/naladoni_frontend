@@ -9,6 +9,7 @@ import { Root } from '@/components/Root.jsx';
 import { EnvUnsupported } from '@/components/EnvUnsupported.jsx';
 import { init } from '@/init.js';
 
+import './fonts.css';
 import './index.css';
 
 // Mock the environment in case, we are outside Telegram.
