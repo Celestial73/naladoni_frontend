@@ -1,4 +1,4 @@
-import { InfoList } from '@/components/InfoList.jsx';
+import { InfoList } from '@/components/Profile/InfoList.jsx';
 import { colors } from '@/constants/colors.js';
 
 export function ProfileInfoCard({ bio, items, interests }) {

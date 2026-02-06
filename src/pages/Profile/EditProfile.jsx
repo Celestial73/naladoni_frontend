@@ -17,7 +17,7 @@ import {
     Info,
     Image as ImageIcon,
 } from 'lucide-react';
-import { Page } from '@/components/Page.jsx';
+import { Page } from '@/components/Layout/Page.jsx';
 import useAuth from '@/hooks/useAuth';
 import { profileService } from '@/services/api/profileService.js';
 import { confirmAction } from '@/utils/confirmDialog.js';

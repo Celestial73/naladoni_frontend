@@ -1,7 +1,7 @@
 import { HashRouter } from 'react-router-dom';
 
-import { App } from '@/components/App.jsx';
-import { ErrorBoundary } from '@/components/ErrorBoundary.jsx';
+import { App } from '@/components/App/App.jsx';
+import { ErrorBoundary } from '@/components/App/ErrorBoundary.jsx';
 import { AuthProvider } from '@/context/AuthProvider.jsx';
 
 function ErrorBoundaryError({ error }) {

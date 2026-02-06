@@ -1,13 +1,13 @@
-import { InitDataPage } from '@/pages/InitDataPage.jsx';
-import { LaunchParamsPage } from '@/pages/LaunchParamsPage.jsx';
-import { ThemeParamsPage } from '@/pages/ThemeParamsPage.jsx';
-import { Profile}  from '@/pages/Profile.jsx';
-import { NewProfile } from '@/pages/NewProfile.jsx';
-import { EditProfile } from '@/pages/EditProfile.jsx';
-import { NewEditProfile } from '@/pages/NewEditProfile.jsx';
-import { Feed } from '@/pages/Feed.jsx';
-import { Events } from '@/pages/Events.jsx';
-import { CreateEvent } from '@/pages/CreateEvent.jsx';
+import { InitDataPage } from '@/pages/Debug/InitDataPage.jsx';
+import { LaunchParamsPage } from '@/pages/Debug/LaunchParamsPage.jsx';
+import { ThemeParamsPage } from '@/pages/Debug/ThemeParamsPage.jsx';
+import { Profile } from '@/pages/Profile/Profile.jsx';
+import { NewProfile } from '@/pages/Profile/NewProfile.jsx';
+import { EditProfile } from '@/pages/Profile/EditProfile.jsx';
+import { NewEditProfile } from '@/pages/Profile/NewEditProfile.jsx';
+import { Feed } from '@/pages/Feed/Feed.jsx';
+import { Events } from '@/pages/Events/Events.jsx';
+import { CreateEvent } from '@/pages/Events/CreateEvent.jsx';
 
 export const routes = [
   { path: '/feed', Component: Feed, title: 'Feed', useMainLayout: true },

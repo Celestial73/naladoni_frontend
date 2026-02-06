@@ -2,9 +2,9 @@
 import { Heart, X, Mail, MapPin } from "lucide-react";
 import { useState, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ProfileDrawer } from "./ProfileDrawer.jsx";
-import { Page } from '@/components/Page.jsx';
-import { EventInformation } from "./EventInformation.jsx";
+import { ProfileDrawer } from "../Profile/ProfileDrawer.jsx";
+import { Page } from '@/components/Layout/Page.jsx';
+import { EventInformation } from "../Events/EventInformation.jsx";
 import { Input, Button } from '@telegram-apps/telegram-ui';
 import { feedService } from '@/services/api/feedService.js';
 import { RUSSIAN_CITIES } from '@/data/russianCities.js';

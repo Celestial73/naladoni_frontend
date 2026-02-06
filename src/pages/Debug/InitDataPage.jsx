@@ -6,7 +6,7 @@ import {
 import { List, Placeholder } from '@telegram-apps/telegram-ui';
 
 import { DisplayData } from '@/components/DisplayData/DisplayData.jsx';
-import { Page } from '@/components/Page.jsx';
+import { Page } from '@/components/Layout/Page.jsx';
 
 function getUserRows(user) {
   return Object.entries(user).map(([title, value]) => ({ title, value }));

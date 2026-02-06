@@ -1,8 +1,8 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { colors } from '@/constants/colors.js';
-import eventsIcon from '../../assets/icons/events (horse).svg';
-import feedIcon from '../../assets/icons/feed (slots).svg';
-import profileIcon from '../../assets/icons/profile (englishman).svg';
+import eventsIcon from '../../../assets/icons/events (horse).svg';
+import feedIcon from '../../../assets/icons/feed (slots).svg';
+import profileIcon from '../../../assets/icons/profile (englishman).svg';
 
 const tabs = [
     { path: '/events', label: 'Events', icon: eventsIcon, activeColor: colors.eventPrimary },

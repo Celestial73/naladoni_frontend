@@ -1,8 +1,8 @@
 import { useOutlet, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 
-import { BottomNav } from '@/components/BottomNav.jsx';
-import { PageWrapper } from '@/components/PageWrapper.jsx';
+import { BottomNav } from '@/components/Layout/BottomNav.jsx';
+import { PageWrapper } from '@/components/Layout/PageWrapper.jsx';
 
 export function MainLayout() {
   const location = useLocation();

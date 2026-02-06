@@ -2,10 +2,10 @@ import { Outlet } from "react-router-dom";
 import { useState, useEffect, useMemo } from "react";
 import { initData, useSignal, useLaunchParams } from "@tma.js/sdk-react";
 import { Placeholder, AppRoot, List } from '@telegram-apps/telegram-ui';
-import useAuth from '../hooks/useAuth';
-import { authService } from '../services/api/authService.js';
+import useAuth from '@/hooks/useAuth';
+import { authService } from '@/services/api/authService.js';
 import { DisplayData } from '@/components/DisplayData/DisplayData.jsx';
-import { Page } from '@/components/Page.jsx';
+import { Page } from '@/components/Layout/Page.jsx';
 
 const Login = () => {
     const [isLoading, setIsLoading] = useState(true);

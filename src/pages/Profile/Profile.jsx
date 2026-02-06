@@ -16,7 +16,7 @@ import useEmblaCarousel from 'embla-carousel-react';
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { Page } from '@/components/Page.jsx';
+import { Page } from '@/components/Layout/Page.jsx';
 import { DisplayData } from '@/components/DisplayData/DisplayData.jsx';
 import useAuth from '@/hooks/useAuth';
 import { profileService } from '@/services/api/profileService.js';

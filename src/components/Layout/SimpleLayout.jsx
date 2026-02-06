@@ -1,7 +1,7 @@
 import { useOutlet, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 
-import { PageWrapper } from '@/components/PageWrapper.jsx';
+import { PageWrapper } from '@/components/Layout/PageWrapper.jsx';
 
 export function SimpleLayout() {
   const location = useLocation();

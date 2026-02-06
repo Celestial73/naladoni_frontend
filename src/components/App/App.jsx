@@ -4,9 +4,9 @@ import { AppRoot } from '@telegram-apps/telegram-ui';
 import { useEffect, useRef } from 'react';
 
 import { routes } from '@/navigation/routes.jsx';
-import { MainLayout } from '@/components/MainLayout.jsx';
-import { SimpleLayout } from '@/components/SimpleLayout.jsx';
-import Login from '@/components/Login.jsx';
+import { MainLayout } from '@/components/Layout/MainLayout.jsx';
+import { SimpleLayout } from '@/components/Layout/SimpleLayout.jsx';
+import Login from '@/components/App/Login.jsx';
 import useAuth from '@/hooks/useAuth';
 import { setupPrivateInterceptors } from '@/api/axios';
 

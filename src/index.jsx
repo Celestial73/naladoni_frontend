@@ -5,8 +5,8 @@ import ReactDOM from 'react-dom/client';
 import { StrictMode } from 'react';
 import { retrieveLaunchParams } from '@tma.js/sdk-react';
 
-import { Root } from '@/components/Root.jsx';
-import { EnvUnsupported } from '@/components/EnvUnsupported.jsx';
+import { Root } from '@/components/App/Root.jsx';
+import { EnvUnsupported } from '@/components/App/EnvUnsupported.jsx';
 import { init } from '@/init.js';
 
 import './fonts.css';

@@ -1,12 +1,12 @@
-import { Page } from '@/components/Page.jsx';
+import { Page } from '@/components/Layout/Page.jsx';
 import { HalftoneBackground } from '@/components/HalftoneBackground.jsx';
 import { colors } from '@/constants/colors.js';
-import { EditFieldCard } from '@/components/EditFieldCard.jsx';
-import { PhotoEditRow } from '@/components/PhotoEditRow.jsx';
-import { EditInfoCard } from '@/components/EditInfoCard.jsx';
+import { EditFieldCard } from '@/components/Profile/ProfileEdit/EditFieldCard.jsx';
+import { PhotoEditRow } from '@/components/Profile/ProfileEdit/PhotoEditRow.jsx';
+import { EditInfoCard } from '@/components/Profile/ProfileEdit/EditInfoCard.jsx';
 import { Coffee, Music, Plane, BookOpen, Dumbbell } from 'lucide-react';
-import profileImage1 from '../../assets/photo_2025-12-14_19-07-23.jpg';
-import profileImage2 from '../../assets/photo_2026-01-21_19-16-39.jpg';
+import profileImage1 from '../../../assets/photo_2025-12-14_19-07-23.jpg';
+import profileImage2 from '../../../assets/photo_2026-01-21_19-16-39.jpg';
 
 const dummyPhotos = [profileImage1, profileImage2];
 

@@ -3,8 +3,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import { EventDrawer } from './EventDrawer.jsx';
-import { ProfileDrawer } from './ProfileDrawer.jsx';
-import { Page } from '@/components/Page.jsx';
+import { ProfileDrawer } from '../Profile/ProfileDrawer.jsx';
+import { Page } from '@/components/Layout/Page.jsx';
 import { eventsService } from '@/services/api/eventsService.js';
 import { formatDateToDDMMYYYY } from '@/utils/dateFormatter.js';
 import {

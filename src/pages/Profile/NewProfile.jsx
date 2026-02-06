@@ -1,12 +1,12 @@
-import { Page } from '@/components/Page.jsx';
-import { ProfileCarousel } from '@/components/ProfileCarousel.jsx';
-import { ProfileInfoCard } from '@/components/ProfileInfoCard.jsx';
+import { Page } from '@/components/Layout/Page.jsx';
+import { ProfileCarousel } from '@/components/Profile/ProfileCarousel.jsx';
+import { ProfileInfoCard } from '@/components/Profile/ProfileInfoCard.jsx';
 import { HalftoneBackground } from '@/components/HalftoneBackground.jsx';
 import { Coffee, Music, Plane, BookOpen, Dumbbell, Pen } from 'lucide-react';
 import { colors } from '@/constants/colors.js';
 import { useNavigate } from 'react-router-dom';
-import profileImage1 from '../../assets/photo_2025-12-14_19-07-23.jpg';
-import profileImage2 from '../../assets/photo_2026-01-21_19-16-39.jpg';
+import profileImage1 from '../../../assets/photo_2025-12-14_19-07-23.jpg';
+import profileImage2 from '../../../assets/photo_2026-01-21_19-16-39.jpg';
 
 const photos = [profileImage1, profileImage2];
 

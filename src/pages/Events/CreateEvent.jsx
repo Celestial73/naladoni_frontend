@@ -8,7 +8,7 @@ import {
   Button,
 } from '@telegram-apps/telegram-ui';
 import { Calendar, MapPin, Users, Image as ImageIcon } from 'lucide-react';
-import { Page } from '@/components/Page.jsx';
+import { Page } from '@/components/Layout/Page.jsx';
 import { eventsService } from '@/services/api/eventsService.js';
 import { RUSSIAN_CITIES } from '@/data/russianCities.js';
 // import useAuth from '@/hooks/useAuth'; // Reserved for future use

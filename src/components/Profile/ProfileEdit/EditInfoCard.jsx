@@ -1,4 +1,4 @@
-import { EditInfoList } from '@/components/EditInfoList.jsx';
+import { EditInfoList } from '@/components/Profile/ProfileEdit/EditInfoList.jsx';
 import { colors } from '@/constants/colors.js';
 import { Plus } from 'lucide-react';
 
