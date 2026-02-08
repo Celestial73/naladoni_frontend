@@ -91,17 +91,33 @@ export function NewProfile() {
     if (loading) {
         return (
             <Page>
+                 <div style={{
+                backgroundColor: colors.profilePrimary,
+                minHeight: 'calc(100vh - 80px)',
+                width: '100%',
+                padding: '2%',
+                paddingBottom: '3em',
+                boxSizing: 'border-box',
+                display: 'flex',
+                flex: 1,
+                flexDirection: 'column',
+                justifyContent: 'flex-start',
+                alignItems: 'center',
+                position: 'relative',
+                overflow: 'visible'
+            }}>
+                {/* Fixed background */}
                 <div style={{
-                    backgroundColor: colors.profilePrimary,
-                    minHeight: '100vh',
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
                     width: '100%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    position: 'relative',
-                    overflow: 'hidden'
+                    height: '100%',
+                    pointerEvents: 'none',
+                    zIndex: 0
                 }}>
                     <HalftoneBackground color={colors.profilePrimaryDark} />
+                </div>
                     <div style={{
                         position: 'relative',
                         zIndex: 1,
@@ -121,19 +137,33 @@ export function NewProfile() {
     if (error && !profileData) {
         return (
             <Page>
+            <div style={{
+                backgroundColor: colors.profilePrimary,
+                minHeight: 'calc(100vh - 80px)',
+                width: '100%',
+                padding: '2%',
+                paddingBottom: '3em',
+                boxSizing: 'border-box',
+                display: 'flex',
+                flex: 1,
+                flexDirection: 'column',
+                justifyContent: 'flex-start',
+                alignItems: 'center',
+                position: 'relative',
+                overflow: 'visible'
+            }}>
+                {/* Fixed background */}
                 <div style={{
-                    backgroundColor: colors.profilePrimary,
-                    minHeight: '100vh',
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
                     width: '100%',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    position: 'relative',
-                    overflow: 'hidden',
-                    padding: '2em'
+                    height: '100%',
+                    pointerEvents: 'none',
+                    zIndex: 0
                 }}>
                     <HalftoneBackground color={colors.profilePrimaryDark} />
+                </div>
                     <div style={{
                         position: 'relative',
                         zIndex: 1,
@@ -159,18 +189,31 @@ export function NewProfile() {
         <Page>
             <div style={{
                 backgroundColor: colors.profilePrimary,
-                minHeight: '100vh',
+                minHeight: 'calc(100vh - 80px)',
                 width: '100%',
                 padding: '2%',
+                paddingBottom: '3em',
                 boxSizing: 'border-box',
                 display: 'flex',
+                flex: 1,
                 flexDirection: 'column',
                 justifyContent: 'flex-start',
                 alignItems: 'center',
                 position: 'relative',
-                overflow: 'hidden'
+                overflow: 'visible'
             }}>
-                <HalftoneBackground color={colors.profilePrimaryDark} />
+                {/* Fixed background */}
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    pointerEvents: 'none',
+                    zIndex: 0
+                }}>
+                    <HalftoneBackground color={colors.profilePrimaryDark} />
+                </div>
 
                 {/* Edit Button */}
                 <button
