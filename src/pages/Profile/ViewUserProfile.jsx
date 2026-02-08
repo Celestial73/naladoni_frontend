@@ -1,12 +1,11 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import { Page } from '@/components/Layout/Page.jsx';
 import { ProfileCarousel } from '@/components/Profile/ProfileCarousel.jsx';
 import { ProfileInfoCard } from '@/components/Profile/ProfileInfoCard.jsx';
 import { HalftoneBackground } from '@/components/HalftoneBackground.jsx';
-import { Info, Pen } from 'lucide-react';
+import { Info, ArrowLeft } from 'lucide-react';
 import { colors } from '@/constants/colors.js';
-import useAuth from '@/hooks/useAuth';
 import { profileService } from '@/services/api/profileService.js';
 
 // Rotating palette for interest chips
@@ -16,17 +15,29 @@ const INTEREST_COLORS = [
     '#16a085', '#d35400', '#2c3e50', '#7f8c8d',
 ];
 
-export function NewProfile() {
+export function ViewUserProfile() {
     const navigate = useNavigate();
-    const { auth } = useAuth();
+    const location = useLocation();
+    const { userId } = useParams();
 
-    const [profileData, setProfileData] = useState(null);
-    const [loading, setLoading] = useState(true);
+    // Get user data from navigation state (passed from EventInformation or other components)
+    const userDataFromState = location.state?.userData;
+
+    const [profileData, setProfileData] = useState(userDataFromState || null);
+    const [loading, setLoading] = useState(!userDataFromState);
     const [error, setError] = useState(null);
 
-    // Fetch profile data from backend on component mount
+    // Fetch profile data if not provided via state
     useEffect(() => {
-        if (!auth?.initData) {
+        // If user data was passed via state, use it
+        if (userDataFromState) {
+            setLoading(false);
+            return;
+        }
+
+        // Otherwise, fetch from API using userId from route params
+        if (!userId) {
+            setError('User ID is required');
             setLoading(false);
             return;
         }
@@ -37,11 +48,12 @@ export function NewProfile() {
             try {
                 setLoading(true);
                 setError(null);
-                const response = await profileService.getMyProfile(abortController.signal);
-
-                if (response) {
-                    setProfileData(response);
-                }
+                // TODO: Replace with actual API call when backend endpoint is available
+                // const response = await profileService.getUserProfile(userId, abortController.signal);
+                // if (response) {
+                //     setProfileData(response);
+                // }
+                setError('Profile fetching not yet implemented');
             } catch (err) {
                 if (err.name !== 'AbortError' && err.name !== 'CanceledError') {
                     setError(err.response?.data?.message || err.message || 'Failed to fetch profile');
@@ -58,12 +70,12 @@ export function NewProfile() {
         return () => {
             abortController.abort();
         };
-    }, [auth?.initData]);
+    }, [userId, userDataFromState]);
 
     // Map backend response to component-friendly shapes
-    const name = profileData?.display_name || profileData?.name || auth.user?.name || '';
+    const name = profileData?.display_name || profileData?.name || '';
     const age = profileData?.age ?? null;
-    const photos = profileData?.photos || [];
+    const photos = profileData?.photos || (profileData?.photo_url ? [profileData.photo_url] : []) || [];
     const bio = profileData?.bio || '';
     const showBio = profileData?.showBio !== false;
     const showInterests = profileData?.showInterests !== false;
@@ -91,33 +103,33 @@ export function NewProfile() {
     if (loading) {
         return (
             <Page>
-                 <div style={{
-                backgroundColor: colors.profilePrimary,
-                minHeight: 'calc(100vh - 80px)',
-                width: '100%',
-                padding: '2%',
-                paddingBottom: '3em',
-                boxSizing: 'border-box',
-                display: 'flex',
-                flex: 1,
-                flexDirection: 'column',
-                justifyContent: 'flex-start',
-                alignItems: 'center',
-                position: 'relative',
-                overflow: 'visible'
-            }}>
-                {/* Fixed background */}
                 <div style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
+                    backgroundColor: colors.profilePrimary,
+                    minHeight: '100vh',
                     width: '100%',
-                    height: '100%',
-                    pointerEvents: 'none',
-                    zIndex: 0
+                    padding: '2%',
+                    paddingBottom: '3em',
+                    boxSizing: 'border-box',
+                    display: 'flex',
+                    flex: 1,
+                    flexDirection: 'column',
+                    justifyContent: 'flex-start',
+                    alignItems: 'center',
+                    position: 'relative',
+                    overflow: 'visible'
                 }}>
-                    <HalftoneBackground color={colors.profilePrimaryDark} />
-                </div>
+                    {/* Fixed background */}
+                    <div style={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        height: '100%',
+                        pointerEvents: 'none',
+                        zIndex: 0
+                    }}>
+                        <HalftoneBackground color={colors.profilePrimaryDark} />
+                    </div>
                     <div style={{
                         position: 'relative',
                         zIndex: 1,
@@ -137,33 +149,33 @@ export function NewProfile() {
     if (error && !profileData) {
         return (
             <Page>
-            <div style={{
-                backgroundColor: colors.profilePrimary,
-                minHeight: 'calc(100vh - 80px)',
-                width: '100%',
-                padding: '2%',
-                paddingBottom: '3em',
-                boxSizing: 'border-box',
-                display: 'flex',
-                flex: 1,
-                flexDirection: 'column',
-                justifyContent: 'flex-start',
-                alignItems: 'center',
-                position: 'relative',
-                overflow: 'visible'
-            }}>
-                {/* Fixed background */}
                 <div style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
+                    backgroundColor: colors.profilePrimary,
+                    minHeight: '100vh',
                     width: '100%',
-                    height: '100%',
-                    pointerEvents: 'none',
-                    zIndex: 0
+                    padding: '2%',
+                    paddingBottom: '3em',
+                    boxSizing: 'border-box',
+                    display: 'flex',
+                    flex: 1,
+                    flexDirection: 'column',
+                    justifyContent: 'flex-start',
+                    alignItems: 'center',
+                    position: 'relative',
+                    overflow: 'visible'
                 }}>
-                    <HalftoneBackground color={colors.profilePrimaryDark} />
-                </div>
+                    {/* Fixed background */}
+                    <div style={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        height: '100%',
+                        pointerEvents: 'none',
+                        zIndex: 0
+                    }}>
+                        <HalftoneBackground color={colors.profilePrimaryDark} />
+                    </div>
                     <div style={{
                         position: 'relative',
                         zIndex: 1,
@@ -189,7 +201,7 @@ export function NewProfile() {
         <Page>
             <div style={{
                 backgroundColor: colors.profilePrimary,
-                minHeight: 'calc(100vh - 80px)',
+                minHeight: '100vh',
                 width: '100%',
                 padding: '2%',
                 paddingBottom: '3em',
@@ -215,13 +227,13 @@ export function NewProfile() {
                     <HalftoneBackground color={colors.profilePrimaryDark} />
                 </div>
 
-                {/* Edit Button */}
+                {/* Back Button */}
                 <button
-                    onClick={() => navigate('/profile/edit')}
+                    onClick={() => navigate(-1)}
                     style={{
                         position: 'fixed',
                         top: '1em',
-                        right: '1em',
+                        left: '1em',
                         zIndex: 2,
                         width: '42px',
                         height: '42px',
@@ -235,7 +247,7 @@ export function NewProfile() {
                         boxShadow: '0 2px 6px rgba(0, 0, 0, 0.2)'
                     }}
                 >
-                    <Pen size={18} color={colors.profilePrimary} />
+                    <ArrowLeft size={18} color={colors.profilePrimary} />
                 </button>
 
                 {/* Inline error banner (profile loaded but with a warning) */}
@@ -311,3 +323,4 @@ export function NewProfile() {
         </Page>
     );
 }
+

@@ -5,9 +5,9 @@ import feedIcon from '../../../assets/icons/feed (slots).svg';
 import profileIcon from '../../../assets/icons/profile (englishman).svg';
 
 const tabs = [
-    { path: '/events', label: 'Events', icon: eventsIcon, activeColor: colors.eventPrimary },
-    { path: '/feed', label: 'Feed', icon: feedIcon, activeColor: colors.feedPrimary },
-    { path: '/profile', label: 'Profile', icon: profileIcon, activeColor: colors.profilePrimary },
+    { path: '/events', label: 'Движи', icon: eventsIcon, activeColor: colors.eventPrimary },
+    { path: '/feed', label: 'Искать', icon: feedIcon, activeColor: colors.feedPrimary },
+    { path: '/profile', label: 'Профиль', icon: profileIcon, activeColor: colors.profilePrimary },
 ];
 
 export function BottomNav() {
@@ -24,7 +24,6 @@ export function BottomNav() {
                         onClick={() => navigate(tab.path)}
                         style={{
                             ...styles.tab,
-                            ...(isActive ? { background: `${tab.activeColor}33` } : {}),
                         }}
                     >
                         <img
@@ -35,20 +34,6 @@ export function BottomNav() {
                                 opacity: isActive ? 1 : 0.45,
                             }}
                         />
-                        <span
-                            style={{
-                                ...styles.label,
-                                color: isActive ? tab.activeColor : 'rgba(255, 255, 255, 0.93)',
-                            }}
-                        >
-                            {tab.label}
-                        </span>
-                        {isActive && (
-                            <div style={{
-                                ...styles.activeIndicator,
-                                backgroundColor: tab.activeColor,
-                            }} />
-                        )}
                     </button>
                 );
             })}
@@ -76,6 +61,7 @@ const styles = {
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
+        alignContent: 'center',
         gap: '3px',
         background: 'none',
         border: 'none',
@@ -86,23 +72,16 @@ const styles = {
         WebkitTapHighlightColor: 'transparent',
         outline: 'none',
         position: 'relative',
+        height: '100%',
+        boxSizing: 'border-box',
     },
     icon: {
-        width: '38px',
-        height: '38px',
+        width: '58px',
+        height: '58px',
         transition: 'opacity 0.2s ease',
-    },
-    label: {
-        fontSize: '10px',
-        fontWeight: 600,
-        letterSpacing: '0.3px',
-        transition: 'color 0.2s ease',
-    },
-    activeIndicator: {
-        position: 'absolute',
-        bottom: '2px',
-        width: '16px',
-        height: '3px',
-        borderRadius: '2px',
-    },
+        display: 'block',
+        verticalAlign: 'middle',
+        objectFit: 'contain',
+    }
+
 };
