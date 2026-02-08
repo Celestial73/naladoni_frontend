@@ -547,92 +547,97 @@ export function NewFeed() {
                                 ) : null}
                             </AnimatePresence>
 
-                            {/* Action buttons */}
-                            {currentEvent && (
-                                <div style={{
-                                    marginTop: '1.5em',
-                                    display: 'flex',
-                                    justifyContent: 'center',
-                                    alignItems: 'center',
-                                    gap: '1.2em'
-                                }}>
-                                    {/* Skip */}
-                                    <button
-                                        onClick={handleSkip}
-                                        disabled={isActionDisabled}
-                                        style={{
-                                            width: '60px',
-                                            height: '60px',
-                                            borderRadius: '50%',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            backgroundColor: colors.white,
-                                            border: 'none',
-                                            boxShadow: '5px 7px 0px rgba(0, 0, 0, 0.2)',
-                                            cursor: isActionDisabled ? 'not-allowed' : 'pointer',
-                                            opacity: isActionDisabled ? 0.5 : 1,
-                                            transition: 'transform 0.1s'
-                                        }}
-                                        onMouseDown={(e) => !isActionDisabled && (e.currentTarget.style.transform = 'scale(0.92)')}
-                                        onMouseUp={(e) => (e.currentTarget.style.transform = 'scale(1)')}
-                                        onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
-                                    >
-                                        <X size={28} color="#c0392b" strokeWidth={3} />
-                                    </button>
-
-                                    {/* Message */}
-                                    <button
-                                        onClick={() => setShowMessagePopup(true)}
-                                        style={{
-                                            width: '52px',
-                                            height: '52px',
-                                            borderRadius: '50%',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            backgroundColor: colors.white,
-                                            border: 'none',
-                                            boxShadow: '5px 7px 0px rgba(0, 0, 0, 0.2)',
-                                            cursor: 'pointer',
-                                            transition: 'transform 0.1s'
-                                        }}
-                                        onMouseDown={(e) => (e.currentTarget.style.transform = 'scale(0.92)')}
-                                        onMouseUp={(e) => (e.currentTarget.style.transform = 'scale(1)')}
-                                        onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
-                                    >
-                                        <Mail size={22} color={colors.feedPrimary} />
-                                    </button>
-
-                                    {/* Like */}
-                                    <button
-                                        onClick={handleLike}
-                                        disabled={isActionDisabled}
-                                        style={{
-                                            width: '60px',
-                                            height: '60px',
-                                            borderRadius: '50%',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            backgroundColor: colors.feedPrimary,
-                                            border: 'none',
-                                            boxShadow: '5px 7px 0px rgba(0, 0, 0, 0.2)',
-                                            cursor: isActionDisabled ? 'not-allowed' : 'pointer',
-                                            opacity: isActionDisabled ? 0.5 : 1,
-                                            transition: 'transform 0.1s'
-                                        }}
-                                        onMouseDown={(e) => !isActionDisabled && (e.currentTarget.style.transform = 'scale(0.92)')}
-                                        onMouseUp={(e) => (e.currentTarget.style.transform = 'scale(1)')}
-                                        onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
-                                    >
-                                        <Heart size={28} color={colors.white} fill={colors.white} />
-                                    </button>
-                                </div>
-                            )}
                         </div>
                     )}
                 </div>
+
+                {/* Fixed action buttons above navbar */}
+                {currentEvent && (
+                    <div style={{
+                        position: 'fixed',
+                        bottom: '92px',
+                        left: 0,
+                        right: 0,
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        gap: '1.2em',
+                        zIndex: 20
+                    }}>
+                        {/* Skip */}
+                        <button
+                            onClick={handleSkip}
+                            disabled={isActionDisabled}
+                            style={{
+                                width: '60px',
+                                height: '60px',
+                                borderRadius: '50%',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                backgroundColor: colors.white,
+                                border: 'none',
+                                boxShadow: '5px 7px 0px rgba(0, 0, 0, 0.2)',
+                                cursor: isActionDisabled ? 'not-allowed' : 'pointer',
+                                opacity: isActionDisabled ? 0.5 : 1,
+                                transition: 'transform 0.1s'
+                            }}
+                            onMouseDown={(e) => !isActionDisabled && (e.currentTarget.style.transform = 'scale(0.92)')}
+                            onMouseUp={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+                            onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+                        >
+                            <X size={28} color="#c0392b" strokeWidth={3} />
+                        </button>
+
+                        {/* Message */}
+                        <button
+                            onClick={() => setShowMessagePopup(true)}
+                            style={{
+                                width: '52px',
+                                height: '52px',
+                                borderRadius: '50%',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                backgroundColor: colors.white,
+                                border: 'none',
+                                boxShadow: '5px 7px 0px rgba(0, 0, 0, 0.2)',
+                                cursor: 'pointer',
+                                transition: 'transform 0.1s'
+                            }}
+                            onMouseDown={(e) => (e.currentTarget.style.transform = 'scale(0.92)')}
+                            onMouseUp={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+                            onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+                        >
+                            <Mail size={22} color={colors.feedPrimary} />
+                        </button>
+
+                        {/* Like */}
+                        <button
+                            onClick={handleLike}
+                            disabled={isActionDisabled}
+                            style={{
+                                width: '60px',
+                                height: '60px',
+                                borderRadius: '50%',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                backgroundColor: colors.feedPrimary,
+                                border: 'none',
+                                boxShadow: '5px 7px 0px rgba(0, 0, 0, 0.2)',
+                                cursor: isActionDisabled ? 'not-allowed' : 'pointer',
+                                opacity: isActionDisabled ? 0.5 : 1,
+                                transition: 'transform 0.1s'
+                            }}
+                            onMouseDown={(e) => !isActionDisabled && (e.currentTarget.style.transform = 'scale(0.92)')}
+                            onMouseUp={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+                            onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+                        >
+                            <Heart size={28} color={colors.white} fill={colors.white} />
+                        </button>
+                    </div>
+                )}
 
                 {/* Message Popup */}
                 <AnimatePresence>

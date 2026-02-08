@@ -23,7 +23,8 @@ const transformEvent = (apiEvent) => {
     description: apiEvent.description,
     attendees: apiEvent.participants || apiEvent.attendees || [],
     maxAttendees: apiEvent.capacity,
-    image: apiEvent.image || apiEvent.imageUrl || apiEvent.creator_profile?.photos?.[0] || apiEvent.creator_profile?.photo_url || null,
+    image: apiEvent.picture || apiEvent.image || apiEvent.imageUrl || apiEvent.creator_profile?.photos?.[0] || apiEvent.creator_profile?.photo_url || null,
+    picture: apiEvent.picture || '',
     creator_profile: apiEvent.creator_profile,
   };
 };
@@ -178,6 +179,53 @@ export const eventsService = {
       },
       SERVICE_NAME,
       'leaveEvent',
+      { signal }
+    );
+  },
+
+  /**
+   * Upload a picture for an event
+   * @param {string|number} eventId - Event ID
+   * @param {File} file - Image file to upload
+   * @param {AbortSignal} [signal] - Optional AbortSignal for request cancellation
+   * @returns {Promise<Object>} Updated event with picture URL populated
+   */
+  uploadEventPicture: async (eventId, file, signal) => {
+    return baseServiceConfig.executeRequest(
+      async (abortSignal) => {
+        const formData = new FormData();
+        formData.append('images', file);
+
+        const config = baseServiceConfig.createRequestConfig(abortSignal, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+
+        const response = await axiosPrivate.post(`/events/me/${eventId}/picture`, formData, config);
+        return response.data;
+      },
+      SERVICE_NAME,
+      'uploadEventPicture',
+      { signal }
+    );
+  },
+
+  /**
+   * Delete the picture for an event
+   * @param {string|number} eventId - Event ID
+   * @param {AbortSignal} [signal] - Optional AbortSignal for request cancellation
+   * @returns {Promise<Object>} Updated event with picture cleared
+   */
+  deleteEventPicture: async (eventId, signal) => {
+    return baseServiceConfig.executeRequest(
+      async (abortSignal) => {
+        const config = baseServiceConfig.createRequestConfig(abortSignal);
+        const response = await axiosPrivate.delete(`/events/me/${eventId}/picture`, config);
+        return response.data;
+      },
+      SERVICE_NAME,
+      'deleteEventPicture',
       { signal }
     );
   },

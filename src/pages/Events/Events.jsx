@@ -152,7 +152,8 @@ export function Events() {
         description: apiEvent.description,
         attendees: apiEvent.participants || apiEvent.attendees || [],
         maxAttendees: apiEvent.capacity,
-        image: apiEvent.image || apiEvent.imageUrl || apiEvent.creator_profile?.photo_url || null,
+        image: apiEvent.picture || apiEvent.image || apiEvent.imageUrl || apiEvent.creator_profile?.photo_url || null,
+        picture: apiEvent.picture || '',
         creator_profile: apiEvent.creator_profile,
       };
     };

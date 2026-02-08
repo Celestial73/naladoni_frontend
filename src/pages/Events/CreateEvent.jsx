@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   List,
@@ -7,7 +7,7 @@ import {
   Textarea,
   Button,
 } from '@telegram-apps/telegram-ui';
-import { Calendar, MapPin, Users, Image as ImageIcon } from 'lucide-react';
+import { Calendar, MapPin, Users, Image as ImageIcon, Upload, X, Loader } from 'lucide-react';
 import { Page } from '@/components/Layout/Page.jsx';
 import { eventsService } from '@/services/api/eventsService.js';
 import { RUSSIAN_CITIES } from '@/data/russianCities.js';
@@ -89,6 +89,8 @@ export function CreateEvent() {
   // const { auth } = useAuth(); // Reserved for future use
   const isEditMode = Boolean(id);
   
+  const fileInputRef = useRef(null);
+
   const [formData, setFormData] = useState({
     title: '',
     date: '',
@@ -96,13 +98,24 @@ export function CreateEvent() {
     location: '',
     maxAttendees: '',
     description: '',
-    image: '',
+    picture: '',  // existing picture URL from the server
   });
+  const [selectedFile, setSelectedFile] = useState(null);       // File object chosen by user
+  const [filePreview, setFilePreview] = useState(null);          // local blob URL for preview
+  const [uploadingPicture, setUploadingPicture] = useState(false);
+  const [deletingPicture, setDeletingPicture] = useState(false);
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(isEditMode);
   const [error, setError] = useState(null);
   const [townSuggestions, setTownSuggestions] = useState([]);
   const [showTownSuggestions, setShowTownSuggestions] = useState(false);
+
+  // Clean up blob URL on unmount / when preview changes
+  useEffect(() => {
+    return () => {
+      if (filePreview) URL.revokeObjectURL(filePreview);
+    };
+  }, [filePreview]);
 
   // Fetch event data on mount if in edit mode
   useEffect(() => {
@@ -126,7 +139,7 @@ export function CreateEvent() {
           location: event.location || '',
           maxAttendees: event.capacity?.toString() || '',
           description: event.description || '',
-          image: event.image || event.imageUrl || '',
+          picture: event.picture || '',
         });
       } catch (err) {
         if (err.name !== 'AbortError' && err.name !== 'CanceledError') {
@@ -166,6 +179,86 @@ export function CreateEvent() {
     setFormData(prev => ({ ...prev, town }));
     setShowTownSuggestions(false);
     setTownSuggestions([]);
+  };
+
+  // --- Picture handlers ---
+  const handlePictureClick = () => {
+    if (uploadingPicture || deletingPicture) return;
+    fileInputRef.current?.click();
+  };
+
+  const handleFileSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const maxSize = 5 * 1024 * 1024; // 5 MB
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+
+    if (!allowedTypes.includes(file.type)) {
+      setError('Only images are allowed (JPEG, PNG, GIF, WebP)');
+      e.target.value = '';
+      return;
+    }
+    if (file.size > maxSize) {
+      setError('Maximum file size is 5 MB');
+      e.target.value = '';
+      return;
+    }
+
+    // If we already had a local preview, revoke it
+    if (filePreview) URL.revokeObjectURL(filePreview);
+
+    setSelectedFile(file);
+    setFilePreview(URL.createObjectURL(file));
+    setError(null);
+    e.target.value = '';
+  };
+
+  /**
+   * Upload the selected file to an already-existing event.
+   * Used in edit mode when the user picks a new picture.
+   */
+  const uploadPictureForEvent = async (eventId) => {
+    if (!selectedFile) return;
+    setUploadingPicture(true);
+    setError(null);
+    try {
+      const updatedEvent = await eventsService.uploadEventPicture(eventId, selectedFile);
+      setFormData(prev => ({ ...prev, picture: updatedEvent.picture || '' }));
+      setSelectedFile(null);
+      if (filePreview) {
+        URL.revokeObjectURL(filePreview);
+        setFilePreview(null);
+      }
+      return updatedEvent;
+    } catch (err) {
+      setError(err.message || 'Failed to upload picture');
+      return null;
+    } finally {
+      setUploadingPicture(false);
+    }
+  };
+
+  const handleDeletePicture = async () => {
+    if (!isEditMode || deletingPicture) return;
+    setDeletingPicture(true);
+    setError(null);
+    try {
+      const updatedEvent = await eventsService.deleteEventPicture(id);
+      setFormData(prev => ({ ...prev, picture: updatedEvent.picture || '' }));
+    } catch (err) {
+      setError(err.message || 'Failed to delete picture');
+    } finally {
+      setDeletingPicture(false);
+    }
+  };
+
+  const handleRemoveSelectedFile = () => {
+    setSelectedFile(null);
+    if (filePreview) {
+      URL.revokeObjectURL(filePreview);
+      setFilePreview(null);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -222,12 +315,28 @@ export function CreateEvent() {
         payload.description = formData.description.trim();
       }
 
+      let createdEvent;
       if (isEditMode) {
-        await eventsService.updateEvent(id, payload);
+        createdEvent = await eventsService.updateEvent(id, payload);
       } else {
-        await eventsService.createEvent(payload);
+        createdEvent = await eventsService.createEvent(payload);
       }
-      
+
+      // Upload picture if a file was selected
+      const eventId = isEditMode ? id : (createdEvent?.id || createdEvent?._id);
+      if (selectedFile && eventId) {
+        setUploadingPicture(true);
+        try {
+          await eventsService.uploadEventPicture(eventId, selectedFile);
+        } catch (pictureErr) {
+          // Event was created/updated successfully but picture failed
+          // Still navigate but show could be improved with a toast
+          console.warn('Event saved but picture upload failed:', pictureErr.message);
+        } finally {
+          setUploadingPicture(false);
+        }
+      }
+
       navigate('/events');
     } catch (err) {
       setError(err.message || `Failed to ${isEditMode ? 'update' : 'create'} event`);
@@ -409,6 +518,15 @@ export function CreateEvent() {
           </Section>
 
           <Section header="Additional Information">
+            {/* Hidden file input */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/gif,image/webp"
+              onChange={handleFileSelect}
+              style={{ display: 'none' }}
+            />
+
             <div style={{ padding: '12px 20px' }}>
               <div style={{ 
                 fontSize: '14px', 
@@ -420,14 +538,89 @@ export function CreateEvent() {
                 gap: '8px'
               }}>
                 <ImageIcon size={16} />
-                Image URL (Optional)
+                Event Picture (Optional)
               </div>
-              <Input
-                type="url"
-                value={formData.image}
-                onChange={(e) => handleChange('image', e.target.value)}
-                placeholder="Enter image URL"
-              />
+
+              {/* Preview of selected file or existing picture */}
+              {(filePreview || formData.picture) ? (
+                <div style={{ position: 'relative', marginBottom: '8px' }}>
+                  <img
+                    src={filePreview || formData.picture}
+                    alt="Event preview"
+                    style={{
+                      width: '100%',
+                      maxHeight: '220px',
+                      objectFit: 'cover',
+                      borderRadius: '12px',
+                      display: 'block',
+                    }}
+                  />
+                  {/* Remove / delete button */}
+                  <button
+                    type="button"
+                    onClick={filePreview ? handleRemoveSelectedFile : handleDeletePicture}
+                    disabled={deletingPicture}
+                    style={{
+                      position: 'absolute',
+                      top: '8px',
+                      right: '8px',
+                      width: '28px',
+                      height: '28px',
+                      borderRadius: '50%',
+                      backgroundColor: 'rgba(0,0,0,0.6)',
+                      border: 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: deletingPicture ? 'not-allowed' : 'pointer',
+                      opacity: deletingPicture ? 0.5 : 1,
+                    }}
+                  >
+                    <X size={16} color="#fff" />
+                  </button>
+                  {/* Upload indicator overlay */}
+                  {(uploadingPicture || deletingPicture) && (
+                    <div style={{
+                      position: 'absolute',
+                      inset: 0,
+                      borderRadius: '12px',
+                      backgroundColor: 'rgba(0,0,0,0.45)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}>
+                      <Loader size={28} color="#fff" style={{ animation: 'spin 1s linear infinite' }} />
+                    </div>
+                  )}
+                </div>
+              ) : null}
+
+              {/* Upload button */}
+              <Button
+                mode="bezeled"
+                size="m"
+                stretched
+                onClick={handlePictureClick}
+                disabled={uploadingPicture || deletingPicture}
+                before={<Upload size={16} />}
+              >
+                {filePreview ? 'Change Picture' : formData.picture ? 'Replace Picture' : 'Upload Picture'}
+              </Button>
+
+              {/* In edit mode: upload immediately when a file is selected */}
+              {isEditMode && selectedFile && (
+                <div style={{ marginTop: '8px' }}>
+                  <Button
+                    mode="filled"
+                    size="s"
+                    stretched
+                    onClick={() => uploadPictureForEvent(id)}
+                    disabled={uploadingPicture}
+                  >
+                    {uploadingPicture ? 'Uploading...' : 'Save Picture Now'}
+                  </Button>
+                </div>
+              )}
             </div>
 
             <div style={{ padding: '12px 20px' }}>
@@ -473,9 +666,11 @@ export function CreateEvent() {
                 size="l"
                 stretched
                 onClick={handleSubmit}
-                disabled={loading}
+                disabled={loading || uploadingPicture || deletingPicture}
               >
-                {loading ? (isEditMode ? 'Updating...' : 'Creating...') : (isEditMode ? 'Update Event' : 'Create Event')}
+                {loading
+                  ? (uploadingPicture ? 'Uploading picture...' : (isEditMode ? 'Updating...' : 'Creating...'))
+                  : (isEditMode ? 'Update Event' : 'Create Event')}
               </Button>
             </div>
           </Section>
