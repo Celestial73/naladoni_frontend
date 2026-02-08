@@ -23,7 +23,8 @@ const transformEvent = (apiEvent) => {
     description: apiEvent.description,
     attendees: apiEvent.participants || apiEvent.attendees || [],
     maxAttendees: apiEvent.capacity,
-    image: apiEvent.image || apiEvent.imageUrl || apiEvent.creator_profile?.photo_url || null,
+    picture: apiEvent.picture || null,
+    image: apiEvent.picture || apiEvent.image || apiEvent.imageUrl || apiEvent.creator_profile?.photo_url || null,
     creator_profile: apiEvent.creator_profile,
     town: apiEvent.town,
   };
