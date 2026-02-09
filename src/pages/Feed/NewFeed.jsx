@@ -1,13 +1,15 @@
-import { useState, useEffect } from 'react';
-import { MapPin, RefreshCw, Calendar } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { MapPin, RefreshCw } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Page } from '@/components/Layout/Page.jsx';
 import { HalftoneBackground } from '@/components/HalftoneBackground.jsx';
 import { EventInformation } from '../Events/EventInformation.jsx';
+import { DateRangePicker } from '@/components/DateRangePicker/DateRangePicker.jsx';
 import { colors } from '@/constants/colors.js';
 import { RUSSIAN_CITIES } from '@/data/russianCities.js';
 import { feedService } from '@/services/api/feedService.js';
 import townHashMapping from '@/data/townHashMapping.json';
+import { formatDateToAPI } from '@/utils/dateFormatter.js';
 import dislikeIcon from '../../../assets/icons/dislike (cockroach).svg';
 import messageIcon from '../../../assets/icons/message (writing).svg';
 import likeIcon from '../../../assets/icons/like (bison).svg';
@@ -22,8 +24,6 @@ export function NewFeed() {
     // Date filter state (range)
     const [startDate, setStartDate] = useState(null);
     const [endDate, setEndDate] = useState(null);
-    const [showDatePicker, setShowDatePicker] = useState(false);
-    const [datePickerMode, setDatePickerMode] = useState('start'); // 'start' or 'end'
 
     // Event state
     const [currentEvent, setCurrentEvent] = useState(null);
@@ -38,41 +38,6 @@ export function NewFeed() {
     const [swipeDirection, setSwipeDirection] = useState(null);
     const [showMessagePopup, setShowMessagePopup] = useState(false);
     const [messageText, setMessageText] = useState('');
-
-    // Helper to parse date string (DD.MM.YYYY) to Date object (normalized to midnight)
-    const parseDate = (dateStr) => {
-        if (!dateStr) return null;
-        const parts = dateStr.split('.');
-        if (parts.length !== 3) return null;
-        const day = parseInt(parts[0], 10);
-        const month = parseInt(parts[1], 10) - 1; // Month is 0-indexed
-        const year = parseInt(parts[2], 10);
-        return new Date(year, month, day, 0, 0, 0, 0);
-    };
-
-    // Helper to format Date to DD.MM.YYYY
-    const formatDate = (date) => {
-        if (!date) return '';
-        const day = String(date.getDate()).padStart(2, '0');
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const year = date.getFullYear();
-        return `${day}.${month}.${year}`;
-    };
-
-    // Helper to normalize date to midnight for comparison
-    const normalizeDate = (date) => {
-        if (!date) return null;
-        return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0);
-    };
-
-    // Helper to convert Date to YYYY-MM-DD format for API
-    const formatDateToAPI = (date) => {
-        if (!date) return null;
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
-    };
 
     // Helper to get town hash ID from town name
     const getTownHash = (townName) => {
@@ -102,96 +67,23 @@ export function NewFeed() {
         setTownSuggestions([]);
     };
 
-    // --- Date picker helpers ---
-    const getDaysInMonth = (date) => {
-        return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
-    };
-
-    const getFirstDayOfMonth = (date) => {
-        return new Date(date.getFullYear(), date.getMonth(), 1).getDay();
-    };
-
-    const isDateInRange = (date) => {
-        if (!startDate && !endDate) return false;
-        const normalizedDate = normalizeDate(date);
-        if (!normalizedDate) return false;
-        
-        const normalizedStart = startDate ? normalizeDate(startDate) : null;
-        const normalizedEnd = endDate ? normalizeDate(endDate) : null;
-        
-        if (normalizedStart && normalizedEnd) {
-            return normalizedDate >= normalizedStart && normalizedDate <= normalizedEnd;
-        } else if (normalizedStart) {
-            return normalizedDate >= normalizedStart;
-        } else if (normalizedEnd) {
-            return normalizedDate <= normalizedEnd;
-        }
-        return false;
-    };
-
-    const isDateSelected = (date) => {
-        const normalizedDate = normalizeDate(date);
-        if (!normalizedDate) return false;
-        const normalizedStart = startDate ? normalizeDate(startDate) : null;
-        const normalizedEnd = endDate ? normalizeDate(endDate) : null;
-        return (normalizedStart && normalizedDate.getTime() === normalizedStart.getTime()) ||
-               (normalizedEnd && normalizedDate.getTime() === normalizedEnd.getTime());
-    };
-
-    const handleDateClick = (day, month, year) => {
-        const clickedDate = normalizeDate(new Date(year, month, day));
-        
-        if (datePickerMode === 'start') {
-            // If end date is set and clicked date is after it, swap them
-            if (endDate && clickedDate > normalizeDate(endDate)) {
-                setEndDate(startDate);
-                setStartDate(clickedDate);
-            } else {
-                setStartDate(clickedDate);
-            }
-            setDatePickerMode('end');
-        } else {
-            // If start date is set and clicked date is before it, swap them
-            if (startDate && clickedDate < normalizeDate(startDate)) {
-                setStartDate(endDate);
-                setEndDate(clickedDate);
-            } else {
-                setEndDate(clickedDate);
-            }
-            // If both dates are set, close the picker
-            if (startDate || clickedDate) {
-                setShowDatePicker(false);
-            }
-        }
+    // Date range change handlers - memoized to prevent unnecessary rerenders
+    const handleStartDateChange = useCallback((date) => {
+        setStartDate(date);
         setError(null);
         setNoEventsAvailable(false);
-    };
+    }, []);
 
-    const clearDateRange = () => {
-        setStartDate(null);
-        setEndDate(null);
-        setShowDatePicker(false);
+    const handleEndDateChange = useCallback((date) => {
+        setEndDate(date);
         setError(null);
         setNoEventsAvailable(false);
-    };
+    }, []);
 
-    // Get current month for calendar display
-    const [calendarMonth, setCalendarMonth] = useState(new Date());
-    const calendarYear = calendarMonth.getFullYear();
-    const calendarMonthIndex = calendarMonth.getMonth();
-
-    // Close date picker when clicking outside
-    useEffect(() => {
-        const handleClickOutside = (event) => {
-            if (showDatePicker && !event.target.closest('[data-date-picker]')) {
-                setShowDatePicker(false);
-            }
-        };
-        if (showDatePicker) {
-            document.addEventListener('mousedown', handleClickOutside);
-            return () => document.removeEventListener('mousedown', handleClickOutside);
-        }
-    }, [showDatePicker]);
+    const handleDateRangeClear = useCallback(() => {
+        setError(null);
+        setNoEventsAvailable(false);
+    }, []);
 
     // Helper function to fetch event from API without setting state
     const fetchEventData = async (abortSignal = null) => {
@@ -446,54 +338,6 @@ export function NewFeed() {
 
     const isActionDisabled = loading || animating;
 
-    // --- Loading state ---
-    if (fetching && !currentEvent) {
-        return (
-            <Page>
-                <div style={{
-                    backgroundColor: colors.feedPrimary,
-                    minHeight: '100vh',
-                    width: '100%',
-                    padding: '2%',
-                    paddingBottom: '3em',
-                    boxSizing: 'border-box',
-                    display: 'flex',
-                    flex: 1,
-                    flexDirection: 'column',
-                    justifyContent: 'flex-start',
-                    alignItems: 'center',
-                    position: 'relative',
-                    overflow: 'visible'
-                }}>
-                {/* Fixed background */}
-                <div style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: '100%',
-                    pointerEvents: 'none',
-                    zIndex: 0
-                }}>
-                    <HalftoneBackground color={colors.feedPrimaryDark} />
-                </div>
-                    <div style={{
-                        position: 'relative',
-                        zIndex: 1,
-                        color: colors.white,
-                        textAlign: 'center',
-                        fontSize: '1.2em',
-                        fontWeight: '700',
-                        fontFamily: "'Uni Sans', sans-serif",
-                        fontStyle: 'italic'
-                    }}>
-                        Загрузка ленты...
-                    </div>
-                </div>
-            </Page>
-        );
-    }
-
     return (
         <Page>
             <div style={{
@@ -632,232 +476,13 @@ export function NewFeed() {
                         </div>
 
                         {/* Date filter */}
-                        <div 
-                            data-date-picker
-                            style={{
-                                position: 'relative',
-                                zIndex: 10
-                            }}
-                        >
-                            <div style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.6em'
-                            }}>
-                                <Calendar size={18} color={colors.feedPrimary} style={{ flexShrink: 0 }} />
-                                <div
-                                    onClick={() => {
-                                        setShowDatePicker(!showDatePicker);
-                                        if (!showDatePicker) {
-                                            setDatePickerMode('start');
-                                        }
-                                    }}
-                                    style={{
-                                        flex: 1,
-                                        padding: '0.6em 0.8em',
-                                        boxSizing: 'border-box',
-                                        border: `2px solid ${colors.borderGrey}`,
-                                        borderRadius: '10px',
-                                        fontSize: '0.95em',
-                                        cursor: 'pointer',
-                                        minHeight: '2.5em',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        color: startDate || endDate ? colors.textDark : '#999'
-                                    }}
-                                >
-                                    {startDate && endDate 
-                                        ? `${formatDate(startDate)} - ${formatDate(endDate)}`
-                                        : startDate 
-                                        ? `С ${formatDate(startDate)}`
-                                        : endDate
-                                        ? `До ${formatDate(endDate)}`
-                                        : 'Выберите даты'
-                                    }
-                                </div>
-                            </div>
-                            {(startDate || endDate) && (
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        clearDateRange();
-                                    }}
-                                    style={{
-                                        marginTop: '0.5em',
-                                        padding: '0.3em 0.6em',
-                                        fontSize: '0.8em',
-                                        backgroundColor: colors.backgroundGrey,
-                                        border: 'none',
-                                        borderRadius: '6px',
-                                        cursor: 'pointer',
-                                        color: colors.textDark
-                                    }}
-                                >
-                                    Очистить
-                                </button>
-                            )}
-
-                            {/* Date picker calendar */}
-                            {showDatePicker && (
-                                <div style={{
-                                    position: 'absolute',
-                                    top: '100%',
-                                    left: '0',
-                                    right: '0',
-                                    marginTop: '0.5em',
-                                    backgroundColor: colors.white,
-                                    border: `2px solid ${colors.borderGrey}`,
-                                    borderRadius: '16px',
-                                    padding: '1em',
-                                    zIndex: 1000,
-                                    boxShadow: '4px 8px 0px rgba(0, 0, 0, 0.15)'
-                                }}>
-                                {/* Calendar header */}
-                                <div style={{
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    alignItems: 'center',
-                                    marginBottom: '1em'
-                                }}>
-                                    <button
-                                        onClick={() => {
-                                            setCalendarMonth(new Date(calendarYear, calendarMonthIndex - 1, 1));
-                                        }}
-                                        style={{
-                                            background: 'none',
-                                            border: 'none',
-                                            fontSize: '1.2em',
-                                            cursor: 'pointer',
-                                            color: colors.feedPrimary,
-                                            padding: '0.2em 0.5em'
-                                        }}
-                                    >
-                                        ‹
-                                    </button>
-                                    <div style={{
-                                        fontSize: '1em',
-                                        fontWeight: '600',
-                                        color: colors.textDark
-                                    }}>
-                                        {new Date(calendarYear, calendarMonthIndex).toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' })}
-                                    </div>
-                                    <button
-                                        onClick={() => {
-                                            setCalendarMonth(new Date(calendarYear, calendarMonthIndex + 1, 1));
-                                        }}
-                                        style={{
-                                            background: 'none',
-                                            border: 'none',
-                                            fontSize: '1.2em',
-                                            cursor: 'pointer',
-                                            color: colors.feedPrimary,
-                                            padding: '0.2em 0.5em'
-                                        }}
-                                    >
-                                        ›
-                                    </button>
-                                </div>
-
-                                {/* Calendar grid */}
-                                <div style={{
-                                    display: 'grid',
-                                    gridTemplateColumns: 'repeat(7, 1fr)',
-                                    gap: '0.3em'
-                                }}>
-                                    {/* Day headers */}
-                                    {['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'].map((day, idx) => (
-                                        <div key={idx} style={{
-                                            textAlign: 'center',
-                                            fontSize: '0.85em',
-                                            fontWeight: '600',
-                                            color: colors.textLight,
-                                            padding: '0.5em'
-                                        }}>
-                                            {day}
-                                        </div>
-                                    ))}
-                                    
-                                    {/* Calendar days */}
-                                    {(() => {
-                                        const daysInMonth = getDaysInMonth(calendarMonth);
-                                        const firstDay = getFirstDayOfMonth(calendarMonth);
-                                        // Adjust for Monday as first day (0 = Sunday, so we shift)
-                                        const firstDayAdjusted = firstDay === 0 ? 6 : firstDay - 1;
-                                        const days = [];
-                                        
-                                        // Empty cells for days before month starts
-                                        for (let i = 0; i < firstDayAdjusted; i++) {
-                                            days.push(
-                                                <div key={`empty-${i}`} style={{ padding: '0.5em' }} />
-                                            );
-                                        }
-                                        
-                                        // Days of the month
-                                        for (let day = 1; day <= daysInMonth; day++) {
-                                            const date = new Date(calendarYear, calendarMonthIndex, day);
-                                            const isInRange = isDateInRange(date);
-                                            const isSelected = isDateSelected(date);
-                                            const isToday = formatDate(date) === formatDate(new Date());
-                                            
-                                            days.push(
-                                                <div
-                                                    key={day}
-                                                    onClick={() => handleDateClick(day, calendarMonthIndex, calendarYear)}
-                                                    style={{
-                                                        padding: '0.5em',
-                                                        textAlign: 'center',
-                                                        cursor: 'pointer',
-                                                        borderRadius: '6px',
-                                                        backgroundColor: isSelected 
-                                                            ? colors.feedPrimary 
-                                                            : isInRange 
-                                                            ? 'rgba(53, 104, 255, 0.2)' 
-                                                            : 'transparent',
-                                                        color: isSelected 
-                                                            ? colors.white 
-                                                            : isToday 
-                                                            ? colors.feedPrimary 
-                                                            : colors.textDark,
-                                                        fontWeight: isSelected || isToday ? '600' : '400',
-                                                        transition: 'all 0.2s'
-                                                    }}
-                                                    onMouseEnter={(e) => {
-                                                        if (!isSelected) {
-                                                            e.currentTarget.style.backgroundColor = isInRange 
-                                                                ? 'rgba(53, 104, 255, 0.3)' 
-                                                                : colors.backgroundGrey;
-                                                        }
-                                                    }}
-                                                    onMouseLeave={(e) => {
-                                                        if (!isSelected) {
-                                                            e.currentTarget.style.backgroundColor = isInRange 
-                                                                ? 'rgba(53, 104, 255, 0.2)' 
-                                                                : 'transparent';
-                                                        }
-                                                    }}
-                                                >
-                                                    {day}
-                                                </div>
-                                            );
-                                        }
-                                        
-                                        return days;
-                                    })()}
-                                </div>
-
-                                {/* Mode indicator */}
-                                <div style={{
-                                    marginTop: '1em',
-                                    padding: '0.5em',
-                                    fontSize: '0.85em',
-                                    color: colors.textLight,
-                                    textAlign: 'center'
-                                }}>
-                                    {datePickerMode === 'start' ? 'Выберите начальную дату' : 'Выберите конечную дату'}
-                                </div>
-                                </div>
-                            )}
-                        </div>
+                        <DateRangePicker
+                            startDate={startDate}
+                            endDate={endDate}
+                            onStartDateChange={handleStartDateChange}
+                            onEndDateChange={handleEndDateChange}
+                            onClear={handleDateRangeClear}
+                        />
                     </div>
                 </div>
 
@@ -894,7 +519,29 @@ export function NewFeed() {
                     position: 'relative',
                     zIndex: 1
                 }}>
-                    {noEventsAvailable && !fetching ? (
+                    {fetching && !currentEvent ? (
+                        /* Loading state */
+                        <div style={{
+                            width: '90%',
+                            backgroundColor: colors.white,
+                            borderRadius: '47px 0 47px 0',
+                            padding: '2em 1.5em',
+                            boxSizing: 'border-box',
+                            boxShadow: `10px 14px 0px ${colors.feedPrimaryDark}`,
+                            textAlign: 'center'
+                        }}>
+                            <div style={{
+                                color: colors.feedPrimary,
+                                textAlign: 'center',
+                                fontSize: '1.2em',
+                                fontWeight: '700',
+                                fontFamily: "'Uni Sans', sans-serif",
+                                fontStyle: 'italic'
+                            }}>
+                                Загрузка ленты...
+                            </div>
+                        </div>
+                    ) : noEventsAvailable && !fetching ? (
                         /* No events state */
                         <div style={{
                             width: '90%',
