@@ -2,6 +2,7 @@ export const colors = {
     profilePrimary: '#d92326',
     profilePrimaryDark: 'rgb(129, 0, 0)',
     eventPrimary: '#1a8f3f',
+    eventPrimaryDark: 'rgb(10, 60, 25)',
     feedPrimary: '#3568ff',
     feedPrimaryDark: 'rgb(35, 0, 130)',
     white: '#fff',
