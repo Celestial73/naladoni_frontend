@@ -9,16 +9,19 @@ import { NewEditProfile } from '@/pages/Profile/NewEditProfile.jsx';
 import { Feed } from '@/pages/Feed/Feed.jsx';
 import { NewFeed } from '@/pages/Feed/NewFeed.jsx';
 import { Events } from '@/pages/Events/Events.jsx';
+import { NewEvents } from '@/pages/Events/NewEvents.jsx';
+import { EventDetail } from '@/pages/Events/EventDetail.jsx';
 import { CreateEvent } from '@/pages/Events/CreateEvent.jsx';
 
 export const routes = [
   { path: '/feed', Component: NewFeed, title: 'Feed', useMainLayout: true },
-  { path: '/events', Component: Events, title: 'Events', useMainLayout: true },
+  { path: '/events', Component: NewEvents, title: 'Events', useMainLayout: true },
   { path: '/profile', Component: NewProfile, title: 'Profile', useMainLayout: true },
   { path: '/user/:userId', Component: ViewUserProfile, title: 'User Profile' },
   { path: '/profile/edit', Component: NewEditProfile, title: 'Edit Profile' },
   { path: '/events/create', Component: CreateEvent, title: 'Create Event' },
   { path: '/events/edit/:id', Component: CreateEvent, title: 'Edit Event' },
+  { path: '/events/:id/detail', Component: EventDetail, title: 'Event Detail', useMainLayout: true },
   { path: '/init-data', Component: InitDataPage, title: 'Init Data' },
   { path: '/theme-params', Component: ThemeParamsPage, title: 'Theme Params' },
   { path: '/launch-params', Component: LaunchParamsPage, title: 'Launch Params' },

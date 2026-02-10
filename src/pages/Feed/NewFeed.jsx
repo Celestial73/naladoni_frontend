@@ -1,12 +1,12 @@
-import { useState, useEffect, useCallback } from 'react';
-import { MapPin, RefreshCw } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { RefreshCw, MapPin } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Page } from '@/components/Layout/Page.jsx';
 import { HalftoneBackground } from '@/components/HalftoneBackground.jsx';
 import { EventInformation } from '../Events/EventInformation.jsx';
 import { DateRangePicker } from '@/components/DateRangePicker/DateRangePicker.jsx';
+import { TownPicker } from '@/components/TownPicker/TownPicker.jsx';
 import { colors } from '@/constants/colors.js';
-import { RUSSIAN_CITIES } from '@/data/russianCities.js';
 import { feedService } from '@/services/api/feedService.js';
 import townHashMapping from '@/data/townHashMapping.json';
 import { formatDateToAPI } from '@/utils/dateFormatter.js';
@@ -18,8 +18,6 @@ import likeIcon from '../../../assets/icons/like (bison).svg';
 export function NewFeed() {
     // Town filter state
     const [town, setTown] = useState('Москва');
-    const [townSuggestions, setTownSuggestions] = useState([]);
-    const [showTownSuggestions, setShowTownSuggestions] = useState(false);
 
     // Date filter state (range)
     const [startDate, setStartDate] = useState(null);
@@ -39,6 +37,11 @@ export function NewFeed() {
     const [showMessagePopup, setShowMessagePopup] = useState(false);
     const [messageText, setMessageText] = useState('');
 
+    // Track if component has mounted to avoid fetching on initial mount (we have a separate useEffect for that)
+    const isMountedRef = useRef(false);
+    // Track last filter values to detect actual changes (not just re-renders)
+    const lastFiltersRef = useRef({ town: null, startDate: null, endDate: null });
+
     // Helper to get town hash ID from town name
     const getTownHash = (townName) => {
         return townHashMapping[townName] || null;
@@ -46,26 +49,21 @@ export function NewFeed() {
 
 
 
-    // --- Town handlers ---
+    // --- Town handler ---
     const handleTownChange = (value) => {
         setTown(value);
         setError(null);
         setNoEventsAvailable(false);
-
-        const filtered = value
-            ? RUSSIAN_CITIES.filter(city =>
-                city.toLowerCase().startsWith(value.toLowerCase())
-            ).slice(0, 10)
-            : [];
-        setTownSuggestions(filtered);
-        setShowTownSuggestions(value.length > 0 && filtered.length > 0);
     };
 
-    const handleTownSelect = (selectedTown) => {
-        setTown(selectedTown);
-        setShowTownSuggestions(false);
-        setTownSuggestions([]);
-    };
+    const handleTownBlur = useCallback(() => {
+        // Fetch events when user unfocuses the town input
+        if (town && town.trim()) {
+            const abortController = new AbortController();
+            fetchNextEvent(abortController.signal);
+            // Note: We don't return cleanup here since this is a one-time fetch on blur
+        }
+    }, [town]);
 
     // Date range change handlers - memoized to prevent unnecessary rerenders
     const handleStartDateChange = useCallback((date) => {
@@ -83,7 +81,22 @@ export function NewFeed() {
     const handleDateRangeClear = useCallback(() => {
         setError(null);
         setNoEventsAvailable(false);
-    }, []);
+        // Fetch events when dates are cleared (without date filtering)
+        if (town && town.trim()) {
+            const abortController = new AbortController();
+            fetchNextEvent(abortController.signal);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [town]); // fetchNextEvent is defined in component scope and always has latest values
+
+    const handleDateRangeClose = useCallback(() => {
+        // Fetch events when calendar closes
+        if (town && town.trim()) {
+            const abortController = new AbortController();
+            fetchNextEvent(abortController.signal);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [town]); // fetchNextEvent is defined in component scope and always has latest values
 
     // Helper function to fetch event from API without setting state
     const fetchEventData = async (abortSignal = null) => {
@@ -96,7 +109,11 @@ export function NewFeed() {
             return null;
         }
 
-        // Convert date filters to YYYY-MM-DD format
+        // Convert date filters to YYYY-MM-DD format for API
+        // According to API spec: from_day and to_day are optional
+        // - If only from_day is provided, backend defaults to_day to from_day
+        // - If both are provided, both are used
+        // - If neither is provided, returns all active events for the town
         const fromDay = startDate ? formatDateToAPI(startDate) : null;
         const toDay = endDate ? formatDateToAPI(endDate) : null;
 
@@ -173,20 +190,52 @@ export function NewFeed() {
         }
     };
 
-    // Fetch event when town or date filters change
+    // Fetch event on initial mount if town is set
     useEffect(() => {
-        if (!town || !town.trim()) {
+        if (town && town.trim()) {
+            const abortController = new AbortController();
+            fetchNextEvent(abortController.signal);
+            isMountedRef.current = true;
+            lastFiltersRef.current = { town, startDate, endDate };
+
+            return () => {
+                abortController.abort();
+            };
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // Only run on mount - initial town value
+
+    // Reload event whenever filters change (town, startDate, or endDate)
+    useEffect(() => {
+        // Skip on initial mount (handled by the useEffect above)
+        if (!isMountedRef.current) {
+            return;
+        }
+
+        // Only fetch if town is valid (exists in townHashMapping)
+        const townHash = getTownHash(town);
+        if (!town || !town.trim() || !townHash) {
             setCurrentEvent(null);
             return;
         }
 
-        const abortController = new AbortController();
-        fetchNextEvent(abortController.signal);
+        // Check if filters actually changed
+        const filtersChanged = 
+            lastFiltersRef.current.town !== town ||
+            lastFiltersRef.current.startDate !== startDate ||
+            lastFiltersRef.current.endDate !== endDate;
 
-        return () => {
-            abortController.abort();
-        };
-    }, [town, startDate, endDate]);
+        if (filtersChanged) {
+            lastFiltersRef.current = { town, startDate, endDate };
+            const abortController = new AbortController();
+            fetchNextEvent(abortController.signal);
+
+            return () => {
+                abortController.abort();
+            };
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [town, startDate, endDate]); // Reload when any filter changes
 
     // --- Swipe action helpers ---
     const handleSkip = async () => {
@@ -336,6 +385,38 @@ export function NewFeed() {
         fetchNextEvent();
     };
 
+    const handleResetSkips = async () => {
+        if (!town || !town.trim() || fetching) return;
+
+        const townHash = getTownHash(town);
+        if (!townHash) {
+            setError('Выбран неверный город');
+            return;
+        }
+
+        try {
+            setFetching(true);
+            setError(null);
+            setNoEventsAvailable(false);
+
+            // Convert date filters to YYYY-MM-DD format for API
+            const fromDay = startDate ? formatDateToAPI(startDate) : null;
+            const toDay = endDate ? formatDateToAPI(endDate) : null;
+
+            // Reset skips for current filters
+            await feedService.resetSkips(townHash, fromDay, toDay);
+
+            // Fetch new events after resetting skips
+            await fetchNextEvent();
+        } catch (err) {
+            if (err.name !== 'AbortError' && err.name !== 'CanceledError') {
+                setError(err.response?.data?.message || err.message || 'Не удалось сбросить пропущенные события');
+            }
+        } finally {
+            setFetching(false);
+        }
+    };
+
     const isActionDisabled = loading || animating;
 
     return (
@@ -388,91 +469,16 @@ export function NewFeed() {
                     }}>
                         {/* Town filter */}
                         <div style={{
-                            position: 'relative',
-                            zIndex: 10
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.6em'
                         }}>
-                            <div style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.6em'
-                            }}>
-                                <MapPin size={18} color={colors.feedPrimary} style={{ flexShrink: 0 }} />
-                                <input
-                                    type="text"
-                                    value={town}
-                                    onChange={(e) => handleTownChange(e.target.value)}
-                                    onFocus={() => {
-                                        if (town) {
-                                            const filtered = RUSSIAN_CITIES.filter(city =>
-                                                city.toLowerCase().startsWith(town.toLowerCase())
-                                            ).slice(0, 10);
-                                            setTownSuggestions(filtered);
-                                            setShowTownSuggestions(filtered.length > 0);
-                                        }
-                                    }}
-                                    onBlur={() => {
-                                        setTimeout(() => setShowTownSuggestions(false), 200);
-                                    }}
-                                    placeholder="Введите город"
-                                    autoComplete="off"
-                                    style={{
-                                        flex: 1,
-                                        padding: '0.6em 0.8em',
-                                        boxSizing: 'border-box',
-                                        border: `2px solid ${colors.borderGrey}`,
-                                        borderRadius: '10px',
-                                        fontSize: '0.95em',
-                                        outline: 'none',
-                                        fontFamily: 'inherit'
-                                    }}
-                                />
-                            </div>
-
-                            {/* Town autocomplete dropdown */}
-                            {showTownSuggestions && townSuggestions.length > 0 && (
-                                <div style={{
-                                    position: 'absolute',
-                                    top: '100%',
-                                    left: '0',
-                                    right: '0',
-                                    backgroundColor: colors.white,
-                                    border: `2px solid ${colors.borderGrey}`,
-                                    borderRadius: '0 0 16px 16px',
-                                    marginTop: '-8px',
-                                    maxHeight: '200px',
-                                    overflowY: 'auto',
-                                    zIndex: 10000,
-                                    boxShadow: '4px 8px 0px rgba(0, 0, 0, 0.15)',
-                                    opacity: 1
-                                }}>
-                                    {townSuggestions.map((city, index) => (
-                                        <div
-                                            key={index}
-                                            onClick={() => handleTownSelect(city)}
-                                            onMouseDown={(e) => e.preventDefault()}
-                                            style={{
-                                                padding: '0.75em 1.2em',
-                                                cursor: 'pointer',
-                                                borderBottom: index < townSuggestions.length - 1
-                                                    ? `1px solid ${colors.borderGrey}`
-                                                    : 'none',
-                                                fontSize: '0.9em',
-                                                color: colors.textDark,
-                                                fontWeight: '500',
-                                                transition: 'background 0.15s'
-                                            }}
-                                            onMouseEnter={(e) => {
-                                                e.currentTarget.style.backgroundColor = colors.backgroundGrey;
-                                            }}
-                                            onMouseLeave={(e) => {
-                                                e.currentTarget.style.backgroundColor = 'transparent';
-                                            }}
-                                        >
-                                            {city}
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
+                            <MapPin size={18} color={colors.feedPrimary} style={{ flexShrink: 0 }} />
+                            <TownPicker
+                                value={town}
+                                onChange={handleTownChange}
+                                onBlur={handleTownBlur}
+                            />
                         </div>
 
                         {/* Date filter */}
@@ -482,6 +488,7 @@ export function NewFeed() {
                             onStartDateChange={handleStartDateChange}
                             onEndDateChange={handleEndDateChange}
                             onClear={handleDateRangeClear}
+                            onClose={handleDateRangeClose}
                         />
                     </div>
                 </div>
@@ -570,32 +577,62 @@ export function NewFeed() {
                             }}>
                                 Вы просмотрели все события в этом городе. Загляните позже!
                             </div>
-                            <button
-                                onClick={handleRefresh}
-                                disabled={fetching}
-                                style={{
-                                    padding: '0.8em 2em',
-                                    backgroundColor: colors.feedPrimary,
-                                    color: colors.white,
-                                    border: 'none',
-                                    borderRadius: '16px',
-                                    fontSize: '1em',
-                                    fontWeight: '700',
-                                    fontFamily: "'Uni Sans', sans-serif",
-                                    fontStyle: 'italic',
-                                    cursor: fetching ? 'not-allowed' : 'pointer',
-                                    boxShadow: '4px 6px 0px rgba(0, 0, 0, 0.25)',
-                                    opacity: fetching ? 0.6 : 1,
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '0.5em',
-                                    margin: '0 auto',
-                                    letterSpacing: '0.03em'
-                                }}
-                            >
-                                <RefreshCw size={18} />
-                                {fetching ? 'ОБНОВЛЕНИЕ...' : 'ОБНОВИТЬ'}
-                            </button>
+                            <div style={{
+                                display: 'flex',
+                                gap: '0.75em',
+                                justifyContent: 'center',
+                                flexWrap: 'wrap'
+                            }}>
+                                <button
+                                    onClick={handleRefresh}
+                                    disabled={fetching}
+                                    style={{
+                                        padding: '0.8em 2em',
+                                        backgroundColor: colors.feedPrimary,
+                                        color: colors.white,
+                                        border: 'none',
+                                        borderRadius: '16px',
+                                        fontSize: '1em',
+                                        fontWeight: '700',
+                                        fontFamily: "'Uni Sans', sans-serif",
+                                        fontStyle: 'italic',
+                                        cursor: fetching ? 'not-allowed' : 'pointer',
+                                        boxShadow: '4px 6px 0px rgba(0, 0, 0, 0.25)',
+                                        opacity: fetching ? 0.6 : 1,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '0.5em',
+                                        letterSpacing: '0.03em'
+                                    }}
+                                >
+                                    <RefreshCw size={18} />
+                                    {fetching ? 'ОБНОВЛЕНИЕ...' : 'ОБНОВИТЬ'}
+                                </button>
+                                <button
+                                    onClick={handleResetSkips}
+                                    disabled={fetching}
+                                    style={{
+                                        padding: '0.8em 2em',
+                                        backgroundColor: colors.white,
+                                        color: colors.feedPrimary,
+                                        border: `2px solid ${colors.feedPrimary}`,
+                                        borderRadius: '16px',
+                                        fontSize: '1em',
+                                        fontWeight: '700',
+                                        fontFamily: "'Uni Sans', sans-serif",
+                                        fontStyle: 'italic',
+                                        cursor: fetching ? 'not-allowed' : 'pointer',
+                                        boxShadow: '4px 6px 0px rgba(0, 0, 0, 0.25)',
+                                        opacity: fetching ? 0.6 : 1,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '0.5em',
+                                        letterSpacing: '0.03em'
+                                    }}
+                                >
+                                    ПОКАЗАТЬ ПРОПУЩЕННЫЕ
+                                </button>
+                            </div>
                         </div>
                     ) : (
                         /* Event card */
@@ -606,8 +643,10 @@ export function NewFeed() {
                                         key={currentEvent.id}
                                         initial={{
                                             opacity: 0,
-                                            x: swipeDirection === 'left' ? 120 : -120,
-                                            rotate: swipeDirection === 'left' ? 12 : -12
+                                            ...(swipeDirection ? {
+                                                x: swipeDirection === 'left' ? 120 : -120,
+                                                rotate: swipeDirection === 'left' ? 12 : -12
+                                            } : {})
                                         }}
                                         animate={{
                                             opacity: 1,
@@ -616,8 +655,10 @@ export function NewFeed() {
                                         }}
                                         exit={{
                                             opacity: 0,
-                                            x: swipeDirection === 'left' ? -120 : 120,
-                                            rotate: swipeDirection === 'left' ? -12 : 12
+                                            ...(swipeDirection ? {
+                                                x: swipeDirection === 'left' ? -120 : 120,
+                                                rotate: swipeDirection === 'left' ? -12 : 12
+                                            } : {})
                                         }}
                                         transition={{
                                             duration: 0.3,

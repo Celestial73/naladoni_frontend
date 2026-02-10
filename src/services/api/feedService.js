@@ -100,5 +100,39 @@ export const feedService = {
       { signal }
     );
   },
+
+  /**
+   * Reset skipped events for a town and optional date range
+   * @param {string} townId - Town ID hash (required)
+   * @param {string} [fromDay] - Start date in YYYY-MM-DD format (optional)
+   * @param {string} [toDay] - End date in YYYY-MM-DD format (optional)
+   * @param {AbortSignal} [signal] - Optional AbortSignal for request cancellation
+   * @returns {Promise<Object>} Response with deletedCount
+   */
+  resetSkips: async (townId, fromDay, toDay, signal) => {
+    return baseServiceConfig.executeRequest(
+      async (abortSignal) => {
+        const config = baseServiceConfig.createRequestConfig(abortSignal);
+        
+        // Build query parameters
+        const params = new URLSearchParams();
+        params.append('town_id', townId);
+        
+        if (fromDay) {
+          params.append('from_day', fromDay);
+        }
+        
+        if (toDay) {
+          params.append('to_day', toDay);
+        }
+        
+        const response = await axiosPrivate.post(`/feed/me/reset-skips?${params.toString()}`, {}, config);
+        return response.data;
+      },
+      SERVICE_NAME,
+      'resetSkips',
+      { signal }
+    );
+  },
 };
 

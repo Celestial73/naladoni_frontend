@@ -12,13 +12,15 @@ import { formatDate, normalizeDate } from '@/utils/dateFormatter.js';
  * @param {Function} onStartDateChange - Callback when start date changes
  * @param {Function} onEndDateChange - Callback when end date changes
  * @param {Function} onClear - Optional callback when dates are cleared
+ * @param {Function} onClose - Optional callback when calendar closes
  */
 export const DateRangePicker = memo(function DateRangePicker({
     startDate,
     endDate,
     onStartDateChange,
     onEndDateChange,
-    onClear
+    onClear,
+    onClose
 }) {
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [datePickerMode, setDatePickerMode] = useState('start'); // 'start' or 'end'
@@ -33,6 +35,7 @@ export const DateRangePicker = memo(function DateRangePicker({
     const prevEndDateRef = useRef(endDate);
     const isPropagatingRef = useRef(false);
     const prevShowDatePickerRef = useRef(false);
+    const isClearingRef = useRef(false);
     
     // Sync internal state when props change externally (but not when we're propagating)
     useEffect(() => {
@@ -161,14 +164,27 @@ export const DateRangePicker = memo(function DateRangePicker({
                     }, 0);
                 });
             }
+            
+            // Call onClose callback when calendar closes (but not when clearing)
+            if (onClose && !isClearingRef.current) {
+                onClose();
+            }
+            // Reset clearing flag after processing
+            if (isClearingRef.current) {
+                isClearingRef.current = false;
+            }
         }
-    }, [showDatePicker, tempStartDate, tempEndDate, startDate, endDate, onStartDateChange, onEndDateChange]);
+    }, [showDatePicker, tempStartDate, tempEndDate, startDate, endDate, onStartDateChange, onEndDateChange, onClose]);
 
     const handleClear = () => {
+        isClearingRef.current = true;
         setTempStartDate(null);
         setTempEndDate(null);
         setShowDatePicker(false);
-        // Changes will be propagated via the useEffect when picker closes
+        // Immediately propagate null values to parent so display updates right away
+        onStartDateChange(null);
+        onEndDateChange(null);
+        // Changes will also be propagated via the useEffect when picker closes, but values are already null
         if (onClear) {
             onClear();
         }

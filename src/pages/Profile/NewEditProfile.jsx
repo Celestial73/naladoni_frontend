@@ -397,45 +397,7 @@ export function NewEditProfile() {
                         Это настройки профиля.
                     </div>
 
-                    <div style={{
-                        width: '70%',
-                        position: 'relative',
-                        zIndex: 1,
-                        backgroundColor: 'red',
-                        borderRadius: '0px 0px 20px 20px',
-                        padding: '0.5em',
-                        boxSizing: 'border-box',
-                        textAlign: 'center',
-                        fontSize: '0.9em',
-                        fontWeight: '900',
-                        color: colors.white,
-                        borderLeft: `3px solid ${colors.white}`,
-                        borderRight: `3px solid ${colors.white}`,
-                        borderBottom: `3px solid ${colors.white}`,
-                        borderTop: 'none'
-                    }}>
-                        Здесь вы можете настроить профиль.
-                    </div>
 
-                    <div style={{
-                        width: '50%',
-                        position: 'relative',
-                        zIndex: 1,
-                        backgroundColor: 'grey',
-                        borderRadius: '0px 0px 10px 10px',
-                        padding: '0.5em',
-                        boxSizing: 'border-box',
-                        textAlign: 'center',
-                        fontSize: '0.75em',
-                        fontWeight: '600',
-                        color: colors.white,
-                        borderLeft: `3px solid ${colors.white}`,
-                        borderRight: `3px solid ${colors.white}`,
-                        borderBottom: `3px solid ${colors.white}`,
-                        borderTop: 'none'
-                    }}>
-                        Хотите? Ну настраивайте.
-                    </div>
                 </div>
 
                 {/* Error message */}
@@ -467,7 +429,7 @@ export function NewEditProfile() {
                     minHeight: '10em'
                 }}>
                     <EditFieldCard
-                        title="Имя!!!"
+                        title="Имя!"
                         placeholder="Введите имя"
                         value={formData.name}
                         onChange={(e) => handleChange('name', e.target.value)}
@@ -480,7 +442,7 @@ export function NewEditProfile() {
                     />
 
                     <EditFieldCard
-                        title="Возраст!!!"
+                        title="Возраст!"
                         placeholder="Введите возраст"
                         value={formData.age}
                         onChange={(e) => handleChange('age', e.target.value)}

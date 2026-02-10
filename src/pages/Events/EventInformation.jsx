@@ -206,7 +206,13 @@ export function EventInformation({
                                     marginBottom: event.attendees.length > 5 ? 8 : 0
                                 }}>
                                     {(isAttendeesExpanded ? event.attendees : event.attendees.slice(0, 5)).map((attendee) => {
-                                        const participantId = attendee.id || attendee.user;
+                                        // Extract participant ID - prioritize user ID fields, NOT attendee.id (which might be event ID or participation record ID)
+                                        const participantId = attendee.user_id || 
+                                                             attendee.participant_id ||
+                                                             (typeof attendee.user === 'object' ? attendee.user?.id || attendee.user?.user_id : null) ||
+                                                             (typeof attendee.user === 'string' || typeof attendee.user === 'number' ? attendee.user : null) ||
+                                                             attendee.telegram_id ||
+                                                             null;
                                         const participantIsCreator = isCreator(attendee);
                                         const attendeePhoto = attendee.profile?.photo_url || attendee.photo_url || attendee.image || attendee.photos?.[0];
                                         return (
@@ -220,45 +226,46 @@ export function EventInformation({
                                                     gap: 4
                                                 }}
                                             >
-                                                <div
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        handleAttendeeClick(attendee);
-                                                    }}
-                                                    style={{ 
-                                                        cursor: 'pointer', 
-                                                        position: 'relative',
-                                                        width: 56,
-                                                        height: 56,
-                                                        borderRadius: '50%',
-                                                        overflow: 'hidden'
-                                                    }}
-                                                >
-                                                    {attendeePhoto ? (
-                                                        <img
-                                                            src={attendeePhoto}
-                                                            alt={attendee.display_name || attendee.name}
-                                                            style={{
+                                                <div style={{ position: 'relative', display: 'inline-block' }}>
+                                                    <div
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleAttendeeClick(attendee);
+                                                        }}
+                                                        style={{ 
+                                                            cursor: 'pointer', 
+                                                            width: 56,
+                                                            height: 56,
+                                                            borderRadius: '50%',
+                                                            overflow: 'hidden'
+                                                        }}
+                                                    >
+                                                        {attendeePhoto ? (
+                                                            <img
+                                                                src={attendeePhoto}
+                                                                alt={attendee.display_name || attendee.name}
+                                                                style={{
+                                                                    width: '100%',
+                                                                    height: '100%',
+                                                                    objectFit: 'cover'
+                                                                }}
+                                                            />
+                                                        ) : (
+                                                            <div style={{
                                                                 width: '100%',
                                                                 height: '100%',
-                                                                objectFit: 'cover'
-                                                            }}
-                                                        />
-                                                    ) : (
-                                                        <div style={{
-                                                            width: '100%',
-                                                            height: '100%',
-                                                            backgroundColor: '#ddd',
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            justifyContent: 'center',
-                                                            color: '#999',
-                                                            fontSize: 18
-                                                        }}>
-                                                            {(attendee.display_name || attendee.name || '?')[0].toUpperCase()}
-                                                        </div>
-                                                    )}
-                                                    {isOwner && onDeleteParticipant && !participantIsCreator && (
+                                                                backgroundColor: '#ddd',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'center',
+                                                                color: '#999',
+                                                                fontSize: 18
+                                                            }}>
+                                                                {(attendee.display_name || attendee.name || '?')[0].toUpperCase()}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    {isOwner && onDeleteParticipant && !participantIsCreator && participantId && (
                                                         <button
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
@@ -278,7 +285,8 @@ export function EventInformation({
                                                                 alignItems: 'center',
                                                                 justifyContent: 'center',
                                                                 cursor: 'pointer',
-                                                                padding: 0
+                                                                padding: 0,
+                                                                zIndex: 10
                                                             }}
                                                         >
                                                             <X size={12} />
@@ -370,7 +378,14 @@ export function EventInformation({
                         </div>
                         <div style={{ padding: '10px 20px', display: 'flex', gap: 10, overflowX: 'auto' }}>
                             {event.attendees.map((attendee) => {
-                                const participantId = attendee.id || attendee.user;
+                                // Extract participant ID - prioritize user ID fields, NOT attendee.id (which might be event ID or participation record ID)
+                                console.log(attendee);
+                                const participantId = attendee.user_id || 
+                                                     attendee.participant_id ||
+                                                     (typeof attendee.user === 'object' ? attendee.user?.id || attendee.user?.user_id : null) ||
+                                                     (typeof attendee.user === 'string' || typeof attendee.user === 'number' ? attendee.user : null) ||
+                                                     attendee.telegram_id ||
+                                                     null;
                                 const participantIsCreator = isCreator(attendee);
                                 const attendeePhoto = attendee.profile?.photo_url || attendee.photo_url || attendee.image || attendee.photos?.[0];
                                 return (
@@ -411,7 +426,7 @@ export function EventInformation({
                                                     {(attendee.display_name || attendee.name || '?')[0].toUpperCase()}
                                                 </div>
                                             )}
-                                            {isOwner && onDeleteParticipant && !participantIsCreator && (
+                                            {isOwner && onDeleteParticipant && !participantIsCreator && participantId && (
                                                 <button
                                                     onClick={(e) => {
                                                         e.stopPropagation();
