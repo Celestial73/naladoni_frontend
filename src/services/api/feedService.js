@@ -33,7 +33,7 @@ const transformEvent = (apiEvent) => {
 export const feedService = {
   /**
    * Get next event from feed
-   * @param {string|null} [townId] - Town ID hash (optional - if omitted, returns events from all towns)
+   * @param {string|null} [townId] - Toкwn ID hash (optional - if omitted, returns events from all towns)
    * @param {string} [fromDay] - Start date in YYYY-MM-DD format (optional)
    * @param {string} [toDay] - End date in YYYY-MM-DD format (optional)
    * @param {AbortSignal} [signal] - Optional AbortSignal for request cancellation
