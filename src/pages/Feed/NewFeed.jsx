@@ -16,6 +16,9 @@ import likeIcon from '../../../assets/icons/like (bison).svg';
 
 
 export function NewFeed() {
+    // Filter toggle state
+    const [filtersEnabled, setFiltersEnabled] = useState(true);
+    
     // Town filter state
     const [town, setTown] = useState('Москва');
 
@@ -40,7 +43,7 @@ export function NewFeed() {
     // Track if component has mounted to avoid fetching on initial mount (we have a separate useEffect for that)
     const isMountedRef = useRef(false);
     // Track last filter values to detect actual changes (not just re-renders)
-    const lastFiltersRef = useRef({ town: null, startDate: null, endDate: null });
+    const lastFiltersRef = useRef({ town: null, startDate: null, endDate: null, filtersEnabled: true });
 
     // Helper to get town hash ID from town name
     const getTownHash = (townName) => {
@@ -57,13 +60,13 @@ export function NewFeed() {
     };
 
     const handleTownBlur = useCallback(() => {
-        // Fetch events when user unfocuses the town input
-        if (town && town.trim()) {
+        // Fetch events when user unfocuses the town input (only if filters are enabled)
+        if (filtersEnabled && town && town.trim()) {
             const abortController = new AbortController();
             fetchNextEvent(abortController.signal);
             // Note: We don't return cleanup here since this is a one-time fetch on blur
         }
-    }, [town]);
+    }, [town, filtersEnabled]);
 
     // Date range change handlers - memoized to prevent unnecessary rerenders
     const handleStartDateChange = useCallback((date) => {
@@ -82,40 +85,44 @@ export function NewFeed() {
         setError(null);
         setNoEventsAvailable(false);
         // Fetch events when dates are cleared (without date filtering)
-        if (town && town.trim()) {
+        if (!filtersEnabled || (town && town.trim())) {
             const abortController = new AbortController();
             fetchNextEvent(abortController.signal);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [town]); // fetchNextEvent is defined in component scope and always has latest values
+    }, [town, filtersEnabled]); // fetchNextEvent is defined in component scope and always has latest values
 
     const handleDateRangeClose = useCallback(() => {
         // Fetch events when calendar closes
-        if (town && town.trim()) {
+        if (!filtersEnabled || (town && town.trim())) {
             const abortController = new AbortController();
             fetchNextEvent(abortController.signal);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [town]); // fetchNextEvent is defined in component scope and always has latest values
+    }, [town, filtersEnabled]); // fetchNextEvent is defined in component scope and always has latest values
 
     // Helper function to fetch event from API without setting state
     const fetchEventData = async (abortSignal = null) => {
-        if (!town || !town.trim()) {
-            return null;
-        }
+        // If filters are enabled, validate town
+        let townHash = null;
+        if (filtersEnabled) {
+            if (!town || !town.trim()) {
+                return null;
+            }
 
-        const townHash = getTownHash(town);
-        if (!townHash) {
-            return null;
+            townHash = getTownHash(town);
+            if (!townHash) {
+                return null;
+            }
         }
 
         // Convert date filters to YYYY-MM-DD format for API
         // According to API spec: from_day and to_day are optional
         // - If only from_day is provided, backend defaults to_day to from_day
         // - If both are provided, both are used
-        // - If neither is provided, returns all active events for the town
-        const fromDay = startDate ? formatDateToAPI(startDate) : null;
-        const toDay = endDate ? formatDateToAPI(endDate) : null;
+        // - If neither is provided, returns all active events (or all towns if filters disabled)
+        const fromDay = filtersEnabled && startDate ? formatDateToAPI(startDate) : null;
+        const toDay = filtersEnabled && endDate ? formatDateToAPI(endDate) : null;
 
         try {
             const event = await feedService.getNextEvent(townHash, fromDay, toDay, abortSignal);
@@ -140,15 +147,18 @@ export function NewFeed() {
 
     // Fetch next event from API and update state
     const fetchNextEvent = async (abortSignal = null) => {
-        if (!town || !town.trim()) {
-            setError('Пожалуйста, выберите город');
-            return;
-        }
+        // If filters are enabled, validate town
+        if (filtersEnabled) {
+            if (!town || !town.trim()) {
+                setError('Пожалуйста, выберите город');
+                return;
+            }
 
-        const townHash = getTownHash(town);
-        if (!townHash) {
-            setError('Выбран неверный город');
-            return;
+            const townHash = getTownHash(town);
+            if (!townHash) {
+                setError('Выбран неверный город');
+                return;
+            }
         }
 
         try {
@@ -190,43 +200,47 @@ export function NewFeed() {
         }
     };
 
-    // Fetch event on initial mount if town is set
+    // Fetch event on initial mount
     useEffect(() => {
-        if (town && town.trim()) {
+        // If filters are enabled, check if town is set; otherwise fetch without filters
+        if (!filtersEnabled || (town && town.trim())) {
             const abortController = new AbortController();
             fetchNextEvent(abortController.signal);
             isMountedRef.current = true;
-            lastFiltersRef.current = { town, startDate, endDate };
+            lastFiltersRef.current = { town, startDate, endDate, filtersEnabled };
 
             return () => {
                 abortController.abort();
             };
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []); // Only run on mount - initial town value
+    }, []); // Only run on mount
 
-    // Reload event whenever filters change (town, startDate, or endDate)
+    // Reload event whenever filters change (town, startDate, endDate, or filtersEnabled)
     useEffect(() => {
         // Skip on initial mount (handled by the useEffect above)
         if (!isMountedRef.current) {
             return;
         }
 
-        // Only fetch if town is valid (exists in townHashMapping)
-        const townHash = getTownHash(town);
-        if (!town || !town.trim() || !townHash) {
-            setCurrentEvent(null);
-            return;
+        // If filters are enabled, validate town
+        if (filtersEnabled) {
+            const townHash = getTownHash(town);
+            if (!town || !town.trim() || !townHash) {
+                setCurrentEvent(null);
+                return;
+            }
         }
 
-        // Check if filters actually changed
+        // Check if filters actually changed (including filtersEnabled toggle)
         const filtersChanged = 
             lastFiltersRef.current.town !== town ||
             lastFiltersRef.current.startDate !== startDate ||
-            lastFiltersRef.current.endDate !== endDate;
+            lastFiltersRef.current.endDate !== endDate ||
+            lastFiltersRef.current.filtersEnabled !== filtersEnabled;
 
         if (filtersChanged) {
-            lastFiltersRef.current = { town, startDate, endDate };
+            lastFiltersRef.current = { town, startDate, endDate, filtersEnabled };
             const abortController = new AbortController();
             fetchNextEvent(abortController.signal);
 
@@ -235,7 +249,7 @@ export function NewFeed() {
             };
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [town, startDate, endDate]); // Reload when any filter changes
+    }, [town, startDate, endDate, filtersEnabled]); // Reload when any filter changes
 
     // --- Swipe action helpers ---
     const handleSkip = async () => {
@@ -249,10 +263,11 @@ export function NewFeed() {
             // Record action and fetch next event in parallel
             const currentEventId = currentEvent.id;
             const actionPromise = feedService.recordAction(currentEventId, 'skip');
-            const nextEventPromise = fetchEventData();
-
+            
             // Wait for action to complete
             await actionPromise;
+            const nextEventPromise = fetchEventData();
+
 
             // Wait for next event, then update state
             const nextEvent = await nextEventPromise;
@@ -386,12 +401,20 @@ export function NewFeed() {
     };
 
     const handleResetSkips = async () => {
-        if (!town || !town.trim() || fetching) return;
+        if (fetching) return;
 
-        const townHash = getTownHash(town);
-        if (!townHash) {
-            setError('Выбран неверный город');
-            return;
+        // If filters are enabled, validate town
+        if (filtersEnabled) {
+            if (!town || !town.trim()) {
+                setError('Пожалуйста, выберите город');
+                return;
+            }
+
+            const townHash = getTownHash(town);
+            if (!townHash) {
+                setError('Выбран неверный город');
+                return;
+            }
         }
 
         try {
@@ -400,8 +423,11 @@ export function NewFeed() {
             setNoEventsAvailable(false);
 
             // Convert date filters to YYYY-MM-DD format for API
-            const fromDay = startDate ? formatDateToAPI(startDate) : null;
-            const toDay = endDate ? formatDateToAPI(endDate) : null;
+            const fromDay = filtersEnabled && startDate ? formatDateToAPI(startDate) : null;
+            const toDay = filtersEnabled && endDate ? formatDateToAPI(endDate) : null;
+
+            // Get town hash only if filters are enabled
+            const townHash = filtersEnabled && town ? getTownHash(town) : null;
 
             // Reset skips for current filters
             await feedService.resetSkips(townHash, fromDay, toDay);
@@ -450,48 +476,111 @@ export function NewFeed() {
                 </div>
 
 
-                {/* Filters container - single card */}
+                {/* Filter toggle switch */}
                 <div style={{
                     width: '90%',
                     marginTop: '1.2em',
                     position: 'relative',
-                    zIndex: 10
+                    zIndex: 10,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginBottom: filtersEnabled ? '0.5em' : '0'
                 }}>
                     <div style={{
                         backgroundColor: colors.white,
-                        borderRadius: '20px 0 20px 0',
-                        padding: '1em',
+                        borderRadius: '16px',
+                        padding: '0.75em 1.2em',
                         boxSizing: 'border-box',
-                        boxShadow: '8px 10px 0px rgba(0, 0, 0, 0.25)',
+                        boxShadow: '4px 6px 0px rgba(0, 0, 0, 0.25)',
                         display: 'flex',
-                        flexDirection: 'column',
-                        gap: '1em'
+                        alignItems: 'center',
+                        gap: '0.75em',
+                        opacity: filtersEnabled ? 1 : 0.9
                     }}>
-                        {/* Town filter */}
-                        <div style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.6em'
+                        <span style={{
+                            fontSize: '0.95em',
+                            fontWeight: '500',
+                            color: colors.textDark,
+                            fontFamily: "Montserrat, sans-serif",
+                            fontStyle: ''
                         }}>
-                            <MapPin size={18} color={colors.feedPrimary} style={{ flexShrink: 0 }} />
-                            <TownPicker
-                                value={town}
-                                onChange={handleTownChange}
-                                onBlur={handleTownBlur}
-                            />
+                            Фильтры
+                        </span>
+                        <div
+                            onClick={() => {
+                                setFiltersEnabled(!filtersEnabled);
+                            }}
+                            style={{
+                                width: '48px',
+                                height: '26px',
+                                borderRadius: '13px',
+                                backgroundColor: filtersEnabled ? colors.feedPrimary : colors.borderGrey,
+                                position: 'relative',
+                                cursor: 'pointer',
+                                transition: 'background-color 0.2s ease',
+                                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
+                            }}
+                        >
+                            <div style={{
+                                width: '22px',
+                                height: '22px',
+                                borderRadius: '50%',
+                                backgroundColor: colors.white,
+                                position: 'absolute',
+                                top: '2px',
+                                left: filtersEnabled ? '24px' : '2px',
+                                transition: 'left 0.2s ease',
+                                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)'
+                            }} />
                         </div>
-
-                        {/* Date filter */}
-                        <DateRangePicker
-                            startDate={startDate}
-                            endDate={endDate}
-                            onStartDateChange={handleStartDateChange}
-                            onEndDateChange={handleEndDateChange}
-                            onClear={handleDateRangeClear}
-                            onClose={handleDateRangeClose}
-                        />
                     </div>
                 </div>
+
+                {/* Filters container - single card */}
+                {filtersEnabled && (
+                    <div style={{
+                        width: '90%',
+                        marginTop: '0.5em',
+                        position: 'relative',
+                        zIndex: 10
+                    }}>
+                        <div style={{
+                            backgroundColor: colors.white,
+                            borderRadius: '20px 0 20px 0',
+                            padding: '1em',
+                            boxSizing: 'border-box',
+                            boxShadow: '8px 10px 0px rgba(0, 0, 0, 0.25)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '1em'
+                        }}>
+                            {/* Town filter */}
+                            <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.6em'
+                            }}>
+                                <MapPin size={18} color={colors.feedPrimary} style={{ flexShrink: 0 }} />
+                                <TownPicker
+                                    value={town}
+                                    onChange={handleTownChange}
+                                    onBlur={handleTownBlur}
+                                />
+                            </div>
+
+                            {/* Date filter */}
+                            <DateRangePicker
+                                startDate={startDate}
+                                endDate={endDate}
+                                onStartDateChange={handleStartDateChange}
+                                onEndDateChange={handleEndDateChange}
+                                onClear={handleDateRangeClear}
+                                onClose={handleDateRangeClose}
+                            />
+                        </div>
+                    </div>
+                )}
 
                 {/* Error message */}
                 {error && (

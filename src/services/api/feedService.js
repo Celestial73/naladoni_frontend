@@ -33,7 +33,7 @@ const transformEvent = (apiEvent) => {
 export const feedService = {
   /**
    * Get next event from feed
-   * @param {string} townId - Town ID hash (required)
+   * @param {string|null} [townId] - Town ID hash (optional - if omitted, returns events from all towns)
    * @param {string} [fromDay] - Start date in YYYY-MM-DD format (optional)
    * @param {string} [toDay] - End date in YYYY-MM-DD format (optional)
    * @param {AbortSignal} [signal] - Optional AbortSignal for request cancellation
@@ -46,7 +46,10 @@ export const feedService = {
         
         // Build query parameters
         const params = new URLSearchParams();
-        params.append('town_id', townId);
+        
+        if (townId) {
+          params.append('town_id', townId);
+        }
         
         if (fromDay) {
           params.append('from_day', fromDay);
@@ -103,7 +106,7 @@ export const feedService = {
 
   /**
    * Reset skipped events for a town and optional date range
-   * @param {string} townId - Town ID hash (required)
+   * @param {string|null} [townId] - Town ID hash (optional - if omitted, resets skips for all towns)
    * @param {string} [fromDay] - Start date in YYYY-MM-DD format (optional)
    * @param {string} [toDay] - End date in YYYY-MM-DD format (optional)
    * @param {AbortSignal} [signal] - Optional AbortSignal for request cancellation
@@ -116,7 +119,10 @@ export const feedService = {
         
         // Build query parameters
         const params = new URLSearchParams();
-        params.append('town_id', townId);
+        
+        if (townId) {
+          params.append('town_id', townId);
+        }
         
         if (fromDay) {
           params.append('from_day', fromDay);
