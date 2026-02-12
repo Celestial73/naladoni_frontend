@@ -8,7 +8,10 @@ import { PhotoEditRow } from '@/components/Profile/ProfileEdit/PhotoEditRow.jsx'
 import { EditInfoCard } from '@/components/Profile/ProfileEdit/EditInfoCard.jsx';
 import useAuth from '@/hooks/useAuth';
 import { profileService } from '@/services/api/profileService.js';
-import { Save, ArrowLeft } from 'lucide-react';
+import { Save, ArrowLeft, Palette } from 'lucide-react';
+import { normalizeApiColor, darkenHex } from '@/utils/colorUtils.js';
+import { useDataCache } from '@/context/DataCacheProvider.jsx';
+import { LoadingPage } from '@/components/LoadingPage.jsx';
 
 const INTEREST_COLORS = [
     '#e74c3c', '#27ae60', '#f39c12', '#8e44ad',
@@ -23,6 +26,7 @@ function getInterestColor(index) {
 export function NewEditProfile() {
     const navigate = useNavigate();
     const { auth } = useAuth();
+    const { updateProfileCache } = useDataCache();
     const fileInputRef = useRef(null);
 
     const [fetching, setFetching] = useState(true);
@@ -39,6 +43,7 @@ export function NewEditProfile() {
         gender: '',
         customFields: [],
         interests: [],
+        backgroundColor: 'd92326',
     });
 
     // Fetch profile on mount
@@ -69,6 +74,7 @@ export function NewEditProfile() {
                             value: field.value || '',
                         })),
                         interests: response.interests || [],
+                        backgroundColor: response.background_color || 'd92326',
                     });
                 }
             } catch (err) {
@@ -227,6 +233,7 @@ export function NewEditProfile() {
                     title: field.title,
                     value: field.value,
                 })),
+                background_color: formData.backgroundColor,
             };
 
             // Remove undefined fields
@@ -234,7 +241,8 @@ export function NewEditProfile() {
                 if (payload[key] === undefined) delete payload[key];
             });
 
-            await profileService.updateProfile(payload);
+            const updatedProfile = await profileService.updateProfile(payload);
+            updateProfileCache({ profileData: updatedProfile });
             navigate('/profile');
         } catch (err) {
             setError(err.message || 'Не удалось сохранить профиль');
@@ -257,41 +265,19 @@ export function NewEditProfile() {
 
     const isLoading = saving || uploadingPhotos || deletingPhotos;
 
+    // Derive background colors from form state
+    const bgColor = normalizeApiColor(formData.backgroundColor, colors.profilePrimary);
+    const bgColorDark = darkenHex(bgColor, 0.5);
+
     // --- Loading state ---
     if (fetching) {
-        return (
-            <Page>
-                <div style={{
-                    backgroundColor: colors.profilePrimary,
-                    minHeight: '100vh',
-                    width: '100%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    position: 'relative'
-                }}>
-                    <HalftoneBackground color={colors.profilePrimaryDark} />
-                    <div style={{
-                        position: 'relative',
-                        zIndex: 1,
-                        color: colors.white,
-                        textAlign: 'center',
-                        fontSize: '1.2em',
-                        fontWeight: '700',
-                        fontFamily: "'Uni Sans', sans-serif",
-                        fontStyle: 'italic'
-                    }}>
-                        Загрузка профиля...
-                    </div>
-                </div>
-            </Page>
-        );
+        return <LoadingPage text="Загрузка профиля..." />;
     }
 
     return (
         <Page>
             <div style={{
-                backgroundColor: colors.profilePrimary,
+                backgroundColor: bgColor,
                 minHeight: '100vh',
                 width: '100%',
                 padding: '2%',
@@ -315,7 +301,7 @@ export function NewEditProfile() {
                     pointerEvents: 'none',
                     zIndex: 0
                 }}>
-                    <HalftoneBackground color={colors.profilePrimaryDark} />
+                    <HalftoneBackground color={bgColorDark} />
                 </div>
 
                 {/* Back button */}
@@ -340,7 +326,7 @@ export function NewEditProfile() {
                         opacity: isLoading ? 0.6 : 1
                     }}
                 >
-                    <ArrowLeft size={20} color={colors.profilePrimary} />
+                    <ArrowLeft size={20} color={bgColor} />
                 </button>
 
                 {/* Save button (floating) */}
@@ -365,7 +351,7 @@ export function NewEditProfile() {
                         opacity: isLoading ? 0.6 : 1
                     }}
                 >
-                    <Save size={18} color={colors.profilePrimary} />
+                    <Save size={18} color={bgColor} />
                 </button>
 
                 {/* Hidden file input for photo upload */}
@@ -398,6 +384,73 @@ export function NewEditProfile() {
                     </div>
 
 
+                </div>
+
+                {/* Background color picker */}
+                <div style={{
+                    width: '90%',
+                    marginTop: '1em',
+                    position: 'relative',
+                    zIndex: 1,
+                    backgroundColor: colors.white,
+                    borderRadius: '16px',
+                    padding: '0.8em 1em',
+                    boxSizing: 'border-box',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.75em',
+                    boxShadow: '4px 6px 0px rgba(0, 0, 0, 0.2)'
+                }}>
+                    <Palette size={20} color={bgColor} style={{ flexShrink: 0 }} />
+                    <span style={{
+                        fontSize: '0.9em',
+                        fontWeight: '600',
+                        color: colors.textDark,
+                        whiteSpace: 'nowrap'
+                    }}>
+                        Цвет фона:
+                    </span>
+                    <label style={{
+                        position: 'relative',
+                        width: '36px',
+                        height: '36px',
+                        flexShrink: 0,
+                        cursor: 'pointer',
+                    }}>
+                        <div style={{
+                            width: '36px',
+                            height: '36px',
+                            borderRadius: '50%',
+                            backgroundColor: bgColor,
+                            border: `2px solid ${colors.borderGrey}`,
+                            boxSizing: 'border-box',
+                        }} />
+                        <input
+                            type="color"
+                            value={bgColor}
+                            onChange={(e) => {
+                                const hex = e.target.value.replace('#', '');
+                                handleChange('backgroundColor', hex);
+                            }}
+                            style={{
+                                position: 'absolute',
+                                top: 0,
+                                left: 0,
+                                width: '100%',
+                                height: '100%',
+                                opacity: 0,
+                                cursor: 'pointer',
+                            }}
+                        />
+                    </label>
+                    <span style={{
+                        fontSize: '0.85em',
+                        fontFamily: 'monospace',
+                        color: colors.textLight,
+                        textTransform: 'uppercase'
+                    }}>
+                        #{formData.backgroundColor}
+                    </span>
                 </div>
 
                 {/* Error message */}
@@ -514,6 +567,7 @@ export function NewEditProfile() {
                     onInterestChange={updateInterest}
                     onDeleteInterest={deleteInterest}
                     onAddInterest={addInterest}
+                    accentColor={bgColor}
                 />
 
                 {/* Bottom save button */}
@@ -525,7 +579,7 @@ export function NewEditProfile() {
                         marginTop: '2em',
                         padding: '1em',
                         backgroundColor: colors.white,
-                        color: colors.profilePrimary,
+                        color: bgColor,
                         border: 'none',
                         borderRadius: '20px',
                         fontSize: '1.3em',

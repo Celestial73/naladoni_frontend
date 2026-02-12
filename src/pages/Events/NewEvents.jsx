@@ -10,15 +10,19 @@ import { colors } from '@/constants/colors.js';
 import { eventsService } from '@/services/api/eventsService.js';
 import { eventActionsService } from '@/services/api/eventActionsService.js';
 import { formatDateToDDMMYYYY } from '@/utils/dateFormatter.js';
+import { useDataCache } from '@/context/DataCacheProvider.jsx';
 
 export function NewEvents() {
     const navigate = useNavigate();
+    const { eventsCache, updateEventsCache, isEventsCacheValid } = useDataCache();
     
-    const [myEvents, setMyEvents] = useState([]);
-    const [acceptedRequests, setAcceptedRequests] = useState([]);
-    const [pendingRequestCounts, setPendingRequestCounts] = useState({});
-    const [loading, setLoading] = useState(true);
-    const [loadingAccepted, setLoadingAccepted] = useState(true);
+    // Restore state from cache on mount
+    const [myEvents, setMyEvents] = useState(eventsCache.myEvents || []);
+    const [acceptedRequests, setAcceptedRequests] = useState(eventsCache.acceptedRequests || []);
+    const [pendingRequestCounts, setPendingRequestCounts] = useState(eventsCache.pendingRequestCounts || {});
+    
+    const [loading, setLoading] = useState(!isEventsCacheValid() || !eventsCache.myEvents);
+    const [loadingAccepted, setLoadingAccepted] = useState(!isEventsCacheValid() || !eventsCache.acceptedRequests);
     const [error, setError] = useState(null);
     const [errorAccepted, setErrorAccepted] = useState(null);
     const [selectedEvent, setSelectedEvent] = useState(null);
@@ -26,6 +30,17 @@ export function NewEvents() {
 
     // Fetch my events and pending request counts
     useEffect(() => {
+        // Check if we have valid cached data
+        const cacheValid = isEventsCacheValid();
+        const hasCachedData = eventsCache.myEvents !== null;
+        
+        // Only fetch if cache is invalid or doesn't exist
+        if (cacheValid && hasCachedData) {
+            // Cache is valid, skip fetching but ensure loading is false
+            setLoading(false);
+            return;
+        }
+
         const abortController = new AbortController();
 
         const fetchEvents = async () => {
@@ -56,7 +71,18 @@ export function NewEvents() {
                         );
                         if (!abortController.signal.aborted) {
                             setPendingRequestCounts(counts);
+                            // Update cache
+                            updateEventsCache({
+                                myEvents: events || [],
+                                pendingRequestCounts: counts,
+                            });
                         }
+                    } else {
+                        // Update cache even if no events
+                        updateEventsCache({
+                            myEvents: [],
+                            pendingRequestCounts: {},
+                        });
                     }
                 }
             } catch (err) {
@@ -77,10 +103,22 @@ export function NewEvents() {
         return () => {
             abortController.abort();
         };
-    }, []);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // Only run on mount - cache check happens inside
 
     // Fetch accepted events
     useEffect(() => {
+        // Check if we have valid cached data
+        const cacheValid = isEventsCacheValid();
+        const hasCachedData = eventsCache.acceptedRequests !== null;
+        
+        // Only fetch if cache is invalid or doesn't exist
+        if (cacheValid && hasCachedData) {
+            // Cache is valid, skip fetching but ensure loading is false
+            setLoadingAccepted(false);
+            return;
+        }
+
         const abortController = new AbortController();
 
         const fetchAcceptedEvents = async () => {
@@ -90,6 +128,10 @@ export function NewEvents() {
                 const events = await eventsService.getAcceptedEvents(abortController.signal);
                 if (!abortController.signal.aborted) {
                     setAcceptedRequests(events || []);
+                    // Update cache
+                    updateEventsCache({
+                        acceptedRequests: events || [],
+                    });
                 }
             } catch (err) {
                 if (err.name !== 'AbortError' && err.name !== 'CanceledError') {
@@ -109,13 +151,19 @@ export function NewEvents() {
         return () => {
             abortController.abort();
         };
-    }, []);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // Only run on mount - cache check happens inside
 
     const handleLeaveEvent = async (eventId) => {
         try {
             await eventsService.leaveEvent(eventId);
-            setAcceptedRequests((prev) => prev.filter((e) => e.id !== eventId));
+            const updatedAccepted = acceptedRequests.filter((e) => e.id !== eventId);
+            setAcceptedRequests(updatedAccepted);
             setSelectedEvent(null);
+            // Update cache
+            updateEventsCache({
+                acceptedRequests: updatedAccepted,
+            });
         } catch (err) {
             setErrorAccepted(err.message || 'Не удалось покинуть событие');
         }
@@ -124,11 +172,13 @@ export function NewEvents() {
     const handleDeleteEvent = async (eventId) => {
         try {
             await eventsService.deleteEvent(eventId);
-            setMyEvents((prev) => prev.filter((e) => e.id !== eventId));
+            const updatedEvents = myEvents.filter((e) => e.id !== eventId);
+            setMyEvents(updatedEvents);
             setSelectedEvent(null);
-            // Refetch to ensure consistency
-            const events = await eventsService.getMyEvents();
-            setMyEvents(events || []);
+            // Update cache
+            updateEventsCache({
+                myEvents: updatedEvents,
+            });
         } catch (err) {
             setError(err.message || 'Не удалось удалить событие');
         }
@@ -216,8 +266,8 @@ export function NewEvents() {
             setAcceptedRequests(acceptedData || []);
             
             // Refresh pending request counts
+            let counts = {};
             if (myEventsData && myEventsData.length > 0) {
-                const counts = {};
                 await Promise.all(
                     myEventsData.map(async (event) => {
                         try {
@@ -229,8 +279,15 @@ export function NewEvents() {
                         }
                     })
                 );
-                setPendingRequestCounts(counts);
             }
+            setPendingRequestCounts(counts);
+            
+            // Update cache
+            updateEventsCache({
+                myEvents: myEventsData || [],
+                acceptedRequests: acceptedData || [],
+                pendingRequestCounts: counts,
+            });
         } catch (err) {
             setError(err.message || 'Не удалось обновить события');
         } finally {

@@ -3,6 +3,7 @@ import { HashRouter } from 'react-router-dom';
 import { App } from '@/components/App/App.jsx';
 import { ErrorBoundary } from '@/components/App/ErrorBoundary.jsx';
 import { AuthProvider } from '@/context/AuthProvider.jsx';
+import { DataCacheProvider } from '@/context/DataCacheProvider.jsx';
 
 function ErrorBoundaryError({ error }) {
   return (
@@ -25,9 +26,11 @@ export function Root() {
   return (
     <ErrorBoundary fallback={ErrorBoundaryError}>
       <AuthProvider>
-        <HashRouter>
-          <App />
-        </HashRouter>
+        <DataCacheProvider>
+          <HashRouter>
+            <App />
+          </HashRouter>
+        </DataCacheProvider>
       </AuthProvider>
     </ErrorBoundary>
   );

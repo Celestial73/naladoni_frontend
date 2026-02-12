@@ -45,7 +45,8 @@ function AutoResizeTextarea({ value, placeholder, onChange, style }) {
     );
 }
 
-export function EditInfoList({ items, onTitleChange, onTextChange, onIconClick, onDeleteItem, onAddItem }) {
+export function EditInfoList({ items, onTitleChange, onTextChange, onIconClick, onDeleteItem, onAddItem, accentColor }) {
+    const accent = accentColor || colors.profilePrimary;
     return (
         <div>
             <div style={{
@@ -97,7 +98,7 @@ export function EditInfoList({ items, onTitleChange, onTextChange, onIconClick, 
                                     width: '40px',
                                     height: '40px',
                                     borderRadius: '50%',
-                                    border: `2px solid ${colors.profilePrimary}`,
+                                    border: `2px solid ${accent}`,
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
@@ -137,7 +138,7 @@ export function EditInfoList({ items, onTitleChange, onTextChange, onIconClick, 
                         backgroundColor: colors.backgroundGrey,
                         borderTop: `1px solid ${colors.borderGrey}`,
                         cursor: 'pointer',
-                        color: colors.profilePrimary,
+                        color: accent,
                         fontWeight: '600',
                         fontSize: '0.9em'
                     }}

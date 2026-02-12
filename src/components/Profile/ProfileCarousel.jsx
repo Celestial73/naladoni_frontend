@@ -21,7 +21,7 @@ export function ProfileCarousel({ photos, name, age }) {
     }, [emblaApi]);
 
     return (
-        <div style={{ position: 'relative', borderRadius: '47px  0 47px 0', boxShadow: `10px 14px 0px ${colors.profilePrimaryDark}` }}>
+        <div style={{ position: 'relative', borderRadius: '47px  0 47px 0', boxShadow: '8px 10px 0px rgba(0, 0, 0, 0.4)' }}>
             {/* Indicator Lines at Top */}
             {photos.length > 1 && (
                 <div style={{

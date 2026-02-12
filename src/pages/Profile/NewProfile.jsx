@@ -8,6 +8,9 @@ import { Info, Pen } from 'lucide-react';
 import { colors } from '@/constants/colors.js';
 import useAuth from '@/hooks/useAuth';
 import { profileService } from '@/services/api/profileService.js';
+import { useDataCache } from '@/context/DataCacheProvider.jsx';
+import { normalizeApiColor, darkenHex } from '@/utils/colorUtils.js';
+import { LoadingPage } from '@/components/LoadingPage.jsx';
 
 // Rotating palette for interest chips
 const INTEREST_COLORS = [
@@ -19,14 +22,23 @@ const INTEREST_COLORS = [
 export function NewProfile() {
     const navigate = useNavigate();
     const { auth } = useAuth();
+    const { profileCache, updateProfileCache, isProfileCacheValid } = useDataCache();
 
-    const [profileData, setProfileData] = useState(null);
-    const [loading, setLoading] = useState(true);
+    // Restore state from cache on mount
+    const [profileData, setProfileData] = useState(profileCache.profileData || null);
+    const [loading, setLoading] = useState(!isProfileCacheValid() || !profileCache.profileData);
     const [error, setError] = useState(null);
 
-    // Fetch profile data from backend on component mount
+    // Fetch profile data from backend on component mount - only if cache is invalid
     useEffect(() => {
         if (!auth?.initData) {
+            setLoading(false);
+            return;
+        }
+
+        // Only fetch if cache is invalid or doesn't exist
+        if (isProfileCacheValid() && profileCache.profileData !== null) {
+            // Cache is valid, skip fetching
             setLoading(false);
             return;
         }
@@ -41,6 +53,10 @@ export function NewProfile() {
 
                 if (response) {
                     setProfileData(response);
+                    // Update cache
+                    updateProfileCache({
+                        profileData: response,
+                    });
                 }
             } catch (err) {
                 if (err.name !== 'AbortError' && err.name !== 'CanceledError') {
@@ -58,7 +74,7 @@ export function NewProfile() {
         return () => {
             abortController.abort();
         };
-    }, [auth?.initData]);
+    }, [auth?.initData, isProfileCacheValid, profileCache.profileData, updateProfileCache]);
 
     // Map backend response to component-friendly shapes
     const name = profileData?.display_name || profileData?.name || auth.user?.name || '';
@@ -68,13 +84,17 @@ export function NewProfile() {
     const showBio = profileData?.showBio !== false;
     const showInterests = profileData?.showInterests !== false;
 
+    // Derive background colors from API background_color field
+    const bgColor = normalizeApiColor(profileData?.background_color, colors.profilePrimary);
+    const bgColorDark = darkenHex(bgColor, 0.5);
+
     // Map custom_fields {title, value} → items {title, text, icon}
     const items = useMemo(() => {
         const fields = profileData?.custom_fields || [];
         return fields.map((field) => ({
             title: field.title || '',
             text: field.value || '',
-            icon: <Info size={22} color={colors.profilePrimary} />,
+            icon: <Info size={22} color={bgColor} />,
         }));
     }, [profileData?.custom_fields]);
 
@@ -89,48 +109,7 @@ export function NewProfile() {
 
     // -- Loading state --
     if (loading) {
-        return (
-            <Page>
-                 <div style={{
-                backgroundColor: colors.profilePrimary,
-                minHeight: 'calc(100vh - 80px)',
-                width: '100%',
-                padding: '2%',
-                paddingBottom: '3em',
-                boxSizing: 'border-box',
-                display: 'flex',
-                flex: 1,
-                flexDirection: 'column',
-                justifyContent: 'flex-start',
-                alignItems: 'center',
-                position: 'relative',
-                overflow: 'visible'
-            }}>
-                {/* Fixed background */}
-                <div style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: '100%',
-                    pointerEvents: 'none',
-                    zIndex: 0
-                }}>
-                    <HalftoneBackground color={colors.profilePrimaryDark} />
-                </div>
-                    <div style={{
-                        position: 'relative',
-                        zIndex: 1,
-                        color: colors.white,
-                        fontSize: '1.1em',
-                        fontWeight: '500',
-                        opacity: 0.85
-                    }}>
-                        Loading profile...
-                    </div>
-                </div>
-            </Page>
-        );
+        return <LoadingPage text="Загрузка профиля..." />;
     }
 
     // -- Error state (no profile data at all) --
@@ -138,7 +117,7 @@ export function NewProfile() {
         return (
             <Page>
             <div style={{
-                backgroundColor: colors.profilePrimary,
+                backgroundColor: bgColor,
                 minHeight: 'calc(100vh - 80px)',
                 width: '100%',
                 padding: '2%',
@@ -162,7 +141,7 @@ export function NewProfile() {
                     pointerEvents: 'none',
                     zIndex: 0
                 }}>
-                    <HalftoneBackground color={colors.profilePrimaryDark} />
+                    <HalftoneBackground color={bgColorDark} />
                 </div>
                     <div style={{
                         position: 'relative',
@@ -188,7 +167,7 @@ export function NewProfile() {
     return (
         <Page>
             <div style={{
-                backgroundColor: colors.profilePrimary,
+                backgroundColor: bgColor,
                 minHeight: 'calc(100vh - 80px)',
                 width: '100%',
                 padding: '2%',
@@ -212,7 +191,7 @@ export function NewProfile() {
                     pointerEvents: 'none',
                     zIndex: 0
                 }}>
-                    <HalftoneBackground color={colors.profilePrimaryDark} />
+                    <HalftoneBackground color={bgColorDark} />
                 </div>
 
                 {/* Edit Button */}
@@ -235,7 +214,7 @@ export function NewProfile() {
                         boxShadow: '0 2px 6px rgba(0, 0, 0, 0.2)'
                     }}
                 >
-                    <Pen size={18} color={colors.profilePrimary} />
+                    <Pen size={18} color={bgColor} />
                 </button>
 
                 {/* Inline error banner (profile loaded but with a warning) */}
@@ -303,6 +282,7 @@ export function NewProfile() {
                             bio={showBio ? bio : null}
                             items={items}
                             interests={showInterests ? interests : []}
+                            accentColor={bgColor}
                         />
                     </div>
                 )}

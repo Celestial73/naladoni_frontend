@@ -15,8 +15,10 @@ export function EditInfoCard({
     onInterestChange,
     onDeleteInterest,
     onAddInterest,
+    accentColor,
     style
 }) {
+    const accent = accentColor || colors.profilePrimary;
     return (
         <div style={{
             width: '90%',
@@ -27,7 +29,7 @@ export function EditInfoCard({
             borderRadius: '47px 0 47px 0',
             padding: '1.5em',
             boxSizing: 'border-box',
-            boxShadow: `10px 14px 0px ${colors.profilePrimaryDark}`,
+            boxShadow: '8px 10px 0px rgba(0, 0, 0, 0.4)',
             ...style
         }}>
             {/* Bio input with left border */}
@@ -39,7 +41,7 @@ export function EditInfoCard({
                 <div style={{
                     width: '3px',
                     borderRadius: '2px',
-                    backgroundColor: colors.profilePrimary,
+                    backgroundColor: accent,
                     flexShrink: 0
                 }} />
                 <textarea
@@ -74,6 +76,7 @@ export function EditInfoCard({
                     onIconClick={onIconClick}
                     onDeleteItem={onDeleteItem}
                     onAddItem={onAddItem}
+                    accentColor={accent}
                 />
             </div>
 

@@ -1,7 +1,8 @@
 import { InfoList } from '@/components/Profile/InfoList.jsx';
 import { colors } from '@/constants/colors.js';
 
-export function ProfileInfoCard({ bio, items, interests }) {
+export function ProfileInfoCard({ bio, items, interests, accentColor }) {
+    const accent = accentColor || colors.profilePrimary;
     return (
         <div style={{
             backgroundColor: colors.white,
@@ -10,7 +11,7 @@ export function ProfileInfoCard({ bio, items, interests }) {
             marginTop: '2%',
             width: '90%',
             boxSizing: 'border-box',
-            boxShadow: `10px 14px 0px ${colors.profilePrimaryDark}`
+            boxShadow: '8px 10px 0px rgba(0, 0, 0, 0.4)'
         }}>
             {/* Bio text with left border */}
             <div style={{
@@ -21,7 +22,7 @@ export function ProfileInfoCard({ bio, items, interests }) {
                 <div style={{
                     width: '3px',
                     borderRadius: '2px',
-                    backgroundColor: colors.profilePrimary,
+                    backgroundColor: accent,
                     flexShrink: 0
                 }} />
                 <div style={{

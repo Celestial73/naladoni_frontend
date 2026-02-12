@@ -10,29 +10,26 @@ import { colors } from '@/constants/colors.js';
 import { feedService } from '@/services/api/feedService.js';
 import townHashMapping from '@/data/townHashMapping.json';
 import { formatDateToAPI } from '@/utils/dateFormatter.js';
+import { useDataCache } from '@/context/DataCacheProvider.jsx';
 import dislikeIcon from '../../../assets/icons/dislike (cockroach).svg';
 import messageIcon from '../../../assets/icons/message (writing).svg';
 import likeIcon from '../../../assets/icons/like (bison).svg';
 
 
 export function NewFeed() {
-    // Filter toggle state
-    const [filtersEnabled, setFiltersEnabled] = useState(true);
+    const { feedCache, updateFeedCache, isFeedCacheValid } = useDataCache();
     
-    // Town filter state
-    const [town, setTown] = useState('Москва');
-
-    // Date filter state (range)
-    const [startDate, setStartDate] = useState(null);
-    const [endDate, setEndDate] = useState(null);
-
-    // Event state
-    const [currentEvent, setCurrentEvent] = useState(null);
+    // Restore state from cache on mount
+    const [filtersEnabled, setFiltersEnabled] = useState(feedCache.filters?.filtersEnabled || false);
+    const [town, setTown] = useState(feedCache.filters?.town || 'Москва');
+    const [startDate, setStartDate] = useState(feedCache.filters?.startDate || null);
+    const [endDate, setEndDate] = useState(feedCache.filters?.endDate || null);
+    const [currentEvent, setCurrentEvent] = useState(feedCache.currentEvent || null);
+    const [noEventsAvailable, setNoEventsAvailable] = useState(feedCache.noEventsAvailable || false);
+    
     const [fetching, setFetching] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
-    const [noEventsAvailable, setNoEventsAvailable] = useState(false);
-
 
     // UI state
     const [animating, setAnimating] = useState(false);
@@ -43,7 +40,7 @@ export function NewFeed() {
     // Track if component has mounted to avoid fetching on initial mount (we have a separate useEffect for that)
     const isMountedRef = useRef(false);
     // Track last filter values to detect actual changes (not just re-renders)
-    const lastFiltersRef = useRef({ town: null, startDate: null, endDate: null, filtersEnabled: true });
+    const lastFiltersRef = useRef({ town: null, startDate: null, endDate: null, filtersEnabled: false });
 
     // Helper to get town hash ID from town name
     const getTownHash = (townName) => {
@@ -146,7 +143,7 @@ export function NewFeed() {
     };
 
     // Fetch next event from API and update state
-    const fetchNextEvent = async (abortSignal = null) => {
+    const fetchNextEvent = async (abortSignal = null, forceRefresh = false) => {
         // If filters are enabled, validate town
         if (filtersEnabled) {
             if (!town || !town.trim()) {
@@ -169,9 +166,21 @@ export function NewFeed() {
             if (event) {
                 setCurrentEvent(event);
                 setNoEventsAvailable(false);
+                // Update cache
+                updateFeedCache({
+                    currentEvent: event,
+                    filters: { town, startDate, endDate, filtersEnabled },
+                    noEventsAvailable: false,
+                });
             } else {
                 setNoEventsAvailable(true);
                 setCurrentEvent(null);
+                // Update cache
+                updateFeedCache({
+                    currentEvent: null,
+                    filters: { town, startDate, endDate, filtersEnabled },
+                    noEventsAvailable: true,
+                });
             }
         } catch (err) {
             if (err.name !== 'AbortError' && err.name !== 'CanceledError') {
@@ -188,6 +197,12 @@ export function NewFeed() {
                     setNoEventsAvailable(true);
                     setCurrentEvent(null);
                     setError(null);
+                    // Update cache
+                    updateFeedCache({
+                        currentEvent: null,
+                        filters: { town, startDate, endDate, filtersEnabled },
+                        noEventsAvailable: true,
+                    });
                 } else {
                     setError(err.response?.data?.message || err.message || 'Не удалось загрузить событие');
                     setNoEventsAvailable(false);
@@ -200,18 +215,34 @@ export function NewFeed() {
         }
     };
 
-    // Fetch event on initial mount
+    // Fetch event on initial mount - only if cache is invalid or doesn't exist
     useEffect(() => {
-        // If filters are enabled, check if town is set; otherwise fetch without filters
-        if (!filtersEnabled || (town && town.trim())) {
-            const abortController = new AbortController();
-            fetchNextEvent(abortController.signal);
+        // Check if we have valid cached data and filters match
+        const filtersMatch = 
+            feedCache.filters?.town === town &&
+            feedCache.filters?.startDate === startDate &&
+            feedCache.filters?.endDate === endDate &&
+            feedCache.filters?.filtersEnabled === filtersEnabled;
+        
+        const hasCachedData = feedCache.currentEvent !== null || feedCache.noEventsAvailable === true;
+        
+        // Only fetch if cache is invalid or filters changed
+        if (!isFeedCacheValid() || !filtersMatch || !hasCachedData) {
+            // If filters are enabled, check if town is set; otherwise fetch without filters
+            if (!filtersEnabled || (town && town.trim())) {
+                const abortController = new AbortController();
+                fetchNextEvent(abortController.signal);
+                isMountedRef.current = true;
+                lastFiltersRef.current = { town, startDate, endDate, filtersEnabled };
+
+                return () => {
+                    abortController.abort();
+                };
+            }
+        } else {
+            // Cache is valid and filters match, just mark as mounted
             isMountedRef.current = true;
             lastFiltersRef.current = { town, startDate, endDate, filtersEnabled };
-
-            return () => {
-                abortController.abort();
-            };
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []); // Only run on mount
@@ -241,6 +272,10 @@ export function NewFeed() {
 
         if (filtersChanged) {
             lastFiltersRef.current = { town, startDate, endDate, filtersEnabled };
+            // Update cache filters immediately
+            updateFeedCache({
+                filters: { town, startDate, endDate, filtersEnabled },
+            });
             const abortController = new AbortController();
             fetchNextEvent(abortController.signal);
 
@@ -277,9 +312,19 @@ export function NewFeed() {
                 if (nextEvent) {
                     setCurrentEvent(nextEvent);
                     setNoEventsAvailable(false);
+                    // Update cache
+                    updateFeedCache({
+                        currentEvent: nextEvent,
+                        noEventsAvailable: false,
+                    });
                 } else {
                     setCurrentEvent(null);
                     setNoEventsAvailable(true);
+                    // Update cache
+                    updateFeedCache({
+                        currentEvent: null,
+                        noEventsAvailable: true,
+                    });
                 }
                 setAnimating(false);
                 setLoading(false);
@@ -320,9 +365,19 @@ export function NewFeed() {
                 if (nextEvent) {
                     setCurrentEvent(nextEvent);
                     setNoEventsAvailable(false);
+                    // Update cache
+                    updateFeedCache({
+                        currentEvent: nextEvent,
+                        noEventsAvailable: false,
+                    });
                 } else {
                     setCurrentEvent(null);
                     setNoEventsAvailable(true);
+                    // Update cache
+                    updateFeedCache({
+                        currentEvent: null,
+                        noEventsAvailable: true,
+                    });
                 }
                 setAnimating(false);
                 setLoading(false);
@@ -367,9 +422,19 @@ export function NewFeed() {
                 if (nextEvent) {
                     setCurrentEvent(nextEvent);
                     setNoEventsAvailable(false);
+                    // Update cache
+                    updateFeedCache({
+                        currentEvent: nextEvent,
+                        noEventsAvailable: false,
+                    });
                 } else {
                     setCurrentEvent(null);
                     setNoEventsAvailable(true);
+                    // Update cache
+                    updateFeedCache({
+                        currentEvent: null,
+                        noEventsAvailable: true,
+                    });
                 }
                 setAnimating(false);
                 setLoading(false);
@@ -397,7 +462,7 @@ export function NewFeed() {
     const handleRefresh = () => {
         setError(null);
         setNoEventsAvailable(false);
-        fetchNextEvent();
+        fetchNextEvent(null, true); // Force refresh
     };
 
     const handleResetSkips = async () => {
