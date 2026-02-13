@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Page } from '@/components/Layout/Page.jsx';
 import { HalftoneBackground } from '@/components/HalftoneBackground.jsx';
 import { EventInformation } from './EventInformation.jsx';
+import { SectionTitle } from './SectionTitle.jsx';
 import { ProfileDrawer } from '../Profile/ProfileDrawer.jsx';
 import { colors } from '@/constants/colors.js';
 import { eventsService } from '@/services/api/eventsService.js';
@@ -485,7 +486,7 @@ export function EventDetail() {
                             style={{
                                 position: 'fixed',
                                 top: '1em',
-                                right: '4.5em',
+                                right: '5.5em',
                                 zIndex: 10,
                                 width: '50px',
                                 height: '50px',
@@ -649,30 +650,23 @@ export function EventDetail() {
                         <div style={{
                             width: '100%',
                             marginBottom: '1em',
-                            padding: '0.8em 1em',
-                            backgroundColor: colors.white,
-                            borderRadius: '20px 0 20px 0',
-                            boxShadow: '8px 10px 0px rgba(0, 0, 0, 0.25)',
-                            fontSize: '1.3em',
-                            fontWeight: '900',
-                            fontFamily: "'Uni Sans', sans-serif",
-                            fontStyle: 'italic',
-                            color: colors.eventPrimary,
-                            textAlign: 'center'
+                            position: 'relative'
                         }}>
-                            ЗАПРОСЫ НА УЧАСТИЕ
-                            {pendingRequests.length > 0 && (
-                                <span style={{
-                                    marginLeft: '0.5em',
-                                    fontSize: '0.8em',
-                                    backgroundColor: colors.eventPrimary,
-                                    color: colors.white,
-                                    padding: '0.2em 0.6em',
-                                    borderRadius: '12px'
-                                }}>
-                                    {pendingRequests.length}
-                                </span>
-                            )}
+                            <SectionTitle align="left" fontSize="2em">
+                                ЗАПРОСЫ НА УЧАСТИЕ
+                                {pendingRequests.length > 0 && (
+                                    <span style={{
+                                        marginLeft: '0.5em',
+                                        fontSize: '0.8em',
+                                        backgroundColor: colors.white,
+                                        color: colors.eventPrimary,
+                                        padding: '0.2em 0.6em',
+                                        borderRadius: '12px'
+                                    }}>
+                                        {pendingRequests.length}
+                                    </span>
+                                )}
+                            </SectionTitle>
                         </div>
 
                         {errorRequests && (

@@ -1,298 +1,341 @@
-import { Plus } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AnimatePresence } from 'framer-motion';
-import { EventDrawer } from './EventDrawer.jsx';
-import { ProfileDrawer } from '../Profile/ProfileDrawer.jsx';
+import { Plus, RefreshCw } from 'lucide-react';
 import { Page } from '@/components/Layout/Page.jsx';
+import { HalftoneBackground } from '@/components/HalftoneBackground.jsx';
+import { CircleButton } from '@/components/CircleButton/CircleButton.jsx';
+import { EventList } from './EventList.jsx';
+import { SectionTitle } from './SectionTitle.jsx';
+import { colors } from '@/constants/colors.js';
 import { eventsService } from '@/services/api/eventsService.js';
-import { formatDateToDDMMYYYY } from '@/utils/dateFormatter.js';
-import {
-  List,
-  Section,
-  Cell,
-  Button,
-  Avatar
-} from '@telegram-apps/telegram-ui';
+import { eventActionsService } from '@/services/api/eventActionsService.js';
+import { useDataCache } from '@/context/DataCacheProvider.jsx';
 
 export function Events() {
-  const navigate = useNavigate();
-  const [myEvents, setMyEvents] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [acceptedRequests, setAcceptedRequests] = useState([]);
-  const [loadingAccepted, setLoadingAccepted] = useState(true);
-  const [errorAccepted, setErrorAccepted] = useState(null);
-  const [selectedEvent, setSelectedEvent] = useState(null);
-  const [selectedAttendee, setSelectedAttendee] = useState(null);
+    const navigate = useNavigate();
+    const { eventsCache, updateEventsCache, isEventsCacheValid } = useDataCache();
+    
+    // Restore state from cache on mount
+    const [myEvents, setMyEvents] = useState(eventsCache.myEvents || []);
+    const [acceptedRequests, setAcceptedRequests] = useState(eventsCache.acceptedRequests || []);
+    const [pendingRequestCounts, setPendingRequestCounts] = useState(eventsCache.pendingRequestCounts || {});
+    
+    const [loading, setLoading] = useState(!isEventsCacheValid() || !eventsCache.myEvents);
+    const [loadingAccepted, setLoadingAccepted] = useState(!isEventsCacheValid() || !eventsCache.acceptedRequests);
+    const [error, setError] = useState(null);
+    const [errorAccepted, setErrorAccepted] = useState(null);
 
-  useEffect(() => {
-    const abortController = new AbortController();
+    // Sync state with cache updates (e.g., when pending counts change from other pages)
+    useEffect(() => {
+        if (eventsCache.pendingRequestCounts) {
+            setPendingRequestCounts(eventsCache.pendingRequestCounts);
+        }
+    }, [eventsCache.pendingRequestCounts]);
 
-    const fetchEvents = async () => {
-      try {
-        setLoading(true);
+    // Fetch my events and pending request counts
+    useEffect(() => {
+        // Check if we have valid cached data
+        const cacheValid = isEventsCacheValid();
+        const hasCachedData = eventsCache.myEvents !== null;
+        
+        // Only fetch if cache is invalid or doesn't exist
+        if (cacheValid && hasCachedData) {
+            // Cache is valid, skip fetching but ensure loading is false
+            setLoading(false);
+            return;
+        }
+
+        const abortController = new AbortController();
+
+        const fetchEvents = async () => {
+            try {
+                setLoading(true);
+                setError(null);
+                const events = await eventsService.getMyEvents(abortController.signal);
+                if (!abortController.signal.aborted) {
+                    setMyEvents(events || []);
+                    
+                    // Fetch pending request counts for each event
+                    if (events && events.length > 0) {
+                        const counts = {};
+                        await Promise.all(
+                            events.map(async (event) => {
+                                try {
+                                    const requests = await eventActionsService.getPendingLikesForEvent(event.id, abortController.signal);
+                                    if (!abortController.signal.aborted) {
+                                        counts[event.id] = requests?.length || 0;
+                                    }
+                                } catch (err) {
+                                    // Silently fail for individual requests - might not be owner or no requests
+                                    if (!abortController.signal.aborted) {
+                                        counts[event.id] = 0;
+                                    }
+                                }
+                            })
+                        );
+                        if (!abortController.signal.aborted) {
+                            setPendingRequestCounts(counts);
+                            // Update cache
+                            updateEventsCache({
+                                myEvents: events || [],
+                                pendingRequestCounts: counts,
+                            });
+                        }
+                    } else {
+                        // Update cache even if no events
+                        updateEventsCache({
+                            myEvents: [],
+                            pendingRequestCounts: {},
+                        });
+                    }
+                }
+            } catch (err) {
+                if (err.name !== 'AbortError' && err.name !== 'CanceledError') {
+                    if (!abortController.signal.aborted) {
+                        setError(err.message || 'Не удалось загрузить события');
+                    }
+                }
+            } finally {
+                if (!abortController.signal.aborted) {
+                    setLoading(false);
+                }
+            }
+        };
+
+        fetchEvents();
+
+        return () => {
+            abortController.abort();
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // Only run on mount - cache check happens inside
+
+    // Fetch accepted events
+    useEffect(() => {
+        // Check if we have valid cached data
+        const cacheValid = isEventsCacheValid();
+        const hasCachedData = eventsCache.acceptedRequests !== null;
+        
+        // Only fetch if cache is invalid or doesn't exist
+        if (cacheValid && hasCachedData) {
+            // Cache is valid, skip fetching but ensure loading is false
+            setLoadingAccepted(false);
+            return;
+        }
+
+        const abortController = new AbortController();
+
+        const fetchAcceptedEvents = async () => {
+            try {
+                setLoadingAccepted(true);
+                setErrorAccepted(null);
+                const events = await eventsService.getAcceptedEvents(abortController.signal);
+                if (!abortController.signal.aborted) {
+                    setAcceptedRequests(events || []);
+                    // Update cache
+                    updateEventsCache({
+                        acceptedRequests: events || [],
+                    });
+                }
+            } catch (err) {
+                if (err.name !== 'AbortError' && err.name !== 'CanceledError') {
+                    if (!abortController.signal.aborted) {
+                        setErrorAccepted(err.message || 'Не удалось загрузить принятые события');
+                    }
+                }
+            } finally {
+                if (!abortController.signal.aborted) {
+                    setLoadingAccepted(false);
+                }
+            }
+        };
+
+        fetchAcceptedEvents();
+
+        return () => {
+            abortController.abort();
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // Only run on mount - cache check happens inside
+
+
+    const handleRefresh = async () => {
         setError(null);
-        const events = await eventsService.getMyEvents(abortController.signal);
-        setMyEvents(events);
-      } catch (err) {
-        if (err.name !== 'AbortError' && err.name !== 'CanceledError') {
-          setError(err.message || 'Failed to load events');
-        }
-      } finally {
-        if (!abortController.signal.aborted) {
-          setLoading(false);
-        }
-      }
-    };
-
-    fetchEvents();
-
-    return () => {
-      abortController.abort();
-    };
-  }, []);
-
-  useEffect(() => {
-    const abortController = new AbortController();
-
-    const fetchAcceptedEvents = async () => {
-      try {
-        setLoadingAccepted(true);
         setErrorAccepted(null);
-        const events = await eventsService.getAcceptedEvents(abortController.signal);
-        setAcceptedRequests(events);
-      } catch (err) {
-        if (err.name !== 'AbortError' && err.name !== 'CanceledError') {
-          setErrorAccepted(err.message || 'Failed to load accepted events');
+        setLoading(true);
+        setLoadingAccepted(true);
+        
+        try {
+            const [myEventsData, acceptedData] = await Promise.all([
+                eventsService.getMyEvents(),
+                eventsService.getAcceptedEvents()
+            ]);
+            setMyEvents(myEventsData || []);
+            setAcceptedRequests(acceptedData || []);
+            
+            // Refresh pending request counts
+            let counts = {};
+            if (myEventsData && myEventsData.length > 0) {
+                await Promise.all(
+                    myEventsData.map(async (event) => {
+                        try {
+                            const requests = await eventActionsService.getPendingLikesForEvent(event.id);
+                            counts[event.id] = requests?.length || 0;
+                        } catch (err) {
+                            // Silently fail for individual requests
+                            counts[event.id] = 0;
+                        }
+                    })
+                );
+            }
+            setPendingRequestCounts(counts);
+            
+            // Update cache
+            updateEventsCache({
+                myEvents: myEventsData || [],
+                acceptedRequests: acceptedData || [],
+                pendingRequestCounts: counts,
+            });
+        } catch (err) {
+            setError(err.message || 'Не удалось обновить события');
+        } finally {
+            setLoading(false);
+            setLoadingAccepted(false);
         }
-      } finally {
-        if (!abortController.signal.aborted) {
-          setLoadingAccepted(false);
-        }
-      }
     };
 
-    fetchAcceptedEvents();
 
-    return () => {
-      abortController.abort();
-    };
-  }, []);
-
-  const handleLeaveEvent = async (eventId) => {
-    try {
-      await eventsService.leaveEvent(eventId);
-      setAcceptedRequests((prev) => prev.filter((e) => e.id !== eventId));
-      setSelectedEvent(null);
-    } catch (err) {
-      setErrorAccepted(err.message || 'Failed to leave event');
-    }
-  };
-
-  const handleDeleteEvent = async (eventId) => {
-    try {
-      await eventsService.deleteEvent(eventId);
-      // Remove the event from the list
-      setMyEvents((prev) => prev.filter((e) => e.id !== eventId));
-      setSelectedEvent(null);
-      // Optionally refetch events to ensure consistency
-      const events = await eventsService.getMyEvents();
-      setMyEvents(events);
-    } catch (err) {
-      setError(err.message || 'Failed to delete event');
-    }
-  };
-
-  const handleEditEvent = (eventId) => {
-    navigate(`/events/edit/${eventId}`);
-  };
-
-  const handleDeleteParticipant = async (eventId, participantId) => {
-    try {
-      await eventsService.deleteParticipant(eventId, participantId);
-      
-      // Update the event in the list to remove the participant
-      setMyEvents((prev) => 
-        prev.map((event) => {
-          if (event.id === eventId) {
-            return {
-              ...event,
-              attendees: event.attendees?.filter(
-                (attendee) => (attendee.id || attendee.user) !== participantId
-              ) || []
-            };
-          }
-          return event;
-        })
-      );
-      
-      // Update selectedEvent if it's the same event
-      if (selectedEvent && selectedEvent.id === eventId) {
-        setSelectedEvent((prev) => ({
-          ...prev,
-          attendees: prev.attendees?.filter(
-            (attendee) => (attendee.id || attendee.user) !== participantId
-          ) || []
-        }));
-      }
-    } catch (err) {
-      setError(err.message || 'Failed to remove participant');
-    }
-  };
-
-  const handleEventUpdate = async (updatedEventData) => {
-    // Transform the event data to match the UI format
-    const transformEvent = (apiEvent) => {
-      return {
-        id: apiEvent.id || apiEvent._id,
-        title: apiEvent.title,
-        date: formatDateToDDMMYYYY(apiEvent.date) || '',
-        location: apiEvent.location,
-        description: apiEvent.description,
-        attendees: apiEvent.participants || apiEvent.attendees || [],
-        maxAttendees: apiEvent.capacity,
-        image: apiEvent.picture || apiEvent.image || apiEvent.imageUrl || apiEvent.creator_profile?.photo_url || null,
-        picture: apiEvent.picture || '',
-        creator_profile: apiEvent.creator_profile,
-      };
-    };
-
-    const transformedEvent = transformEvent(updatedEventData);
-
-    // Update the event in the myEvents list
-    setMyEvents((prev) =>
-      prev.map((event) => {
-        if (event.id === transformedEvent.id) {
-          return transformedEvent;
-        }
-        return event;
-      })
-    );
-
-    // Update selectedEvent if it's the same event
-    if (selectedEvent && selectedEvent.id === transformedEvent.id) {
-      setSelectedEvent(transformedEvent);
-    }
-  };
-
-  return (
-    <Page>
-      <List>
-        {/* Section 1: My Events */}
-        <Section
-          header={
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span>My Events</span>
-              <Button 
-                mode="plain" 
-                size="s" 
-                before={<Plus size={16} />}
-                onClick={() => navigate('/events/create')}
-              >
-                Create
-              </Button>
-            </div>
-          }
-        >
-          {loading ? (
-            <div style={{ padding: 20, textAlign: 'center', opacity: 0.5 }}>
-              Loading events...
-            </div>
-          ) : error ? (
-            <div style={{ padding: 20, textAlign: 'center', color: 'var(--tgui--destructive_text_color)' }}>
-              {error}
-            </div>
-          ) : myEvents.length > 0 ? (
-            myEvents.map((event) => (
-              <Cell
-                key={event.id}
-                onClick={() => setSelectedEvent(event)}
-                before={<Avatar src={event.image} size={48} />}
-                description={event.date || ''}
-                after={
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', fontSize: 12, opacity: 0.6 }}>
-                    <span>{event.attendees?.length || 0}/{event.maxAttendees}</span>
-                    <span>Guests</span>
-                  </div>
-                }
-              >
-                {event.title}
-                <div style={{ fontSize: 12, opacity: 0.7, marginTop: 2 }}>{event.location}</div>
-              </Cell>
-            ))
-          ) : (
-            <div style={{ padding: 20, textAlign: 'center', opacity: 0.5 }}>
-              You haven't created any events yet.
-            </div>
-          )}
-        </Section>
-
-        {/* Section 2: Accepted Requests */}
-        <Section header="Accepted Requests">
-          {loadingAccepted ? (
-            <div style={{ padding: 20, textAlign: 'center', opacity: 0.5 }}>
-              Loading accepted events...
-            </div>
-          ) : errorAccepted ? (
-            <div style={{ padding: 20, textAlign: 'center', color: 'var(--tgui--destructive_text_color)' }}>
-              {errorAccepted}
-            </div>
-          ) : acceptedRequests.length > 0 ? (
-            acceptedRequests.map((event) => (
-              <Cell
-                key={event.id}
-                onClick={() => setSelectedEvent(event)}
-                before={<Avatar src={event.image || event.creator_profile?.photos?.[0]} size={48} />}
-                description={event.date || ''}
-                after={
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', fontSize: 12, opacity: 0.6 }}>
-                    <span>{event.attendees?.length || 0}/{event.maxAttendees}</span>
-                    <span>Guests</span>
-                  </div>
-                }
-              >
-                {event.title}
-                <div style={{ fontSize: 12, opacity: 0.7, marginTop: 2 }}>
-                  {event.location}
-                  {event.creator_profile?.display_name && ` • Host: ${event.creator_profile.display_name}`}
+    return (
+        <Page>
+            <div style={{
+                backgroundColor: colors.eventPrimary,
+                minHeight: 'calc(100vh - 80px)',
+                width: '100%',
+                padding: '2%',
+                paddingBottom: '3em',
+                boxSizing: 'border-box',
+                display: 'flex',
+                flex: 1,
+                flexDirection: 'column',
+                justifyContent: 'flex-start',
+                alignItems: 'center',
+                position: 'relative',
+                overflow: 'visible'
+            }}>
+                {/* Fixed background */}
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    pointerEvents: 'none',
+                    zIndex: 0
+                }}>
+                    <HalftoneBackground color={colors.eventPrimaryDark} />
                 </div>
-              </Cell>
-            ))
-          ) : (
-            <div style={{ padding: 20, textAlign: 'center', opacity: 0.5 }}>
-              No accepted requests yet.
+
+                {/* Create Event Button - Fixed top right */}
+                <CircleButton
+                    icon={<Plus size={24} color={colors.eventPrimary} />}
+                    onClick={() => navigate('/events/create')}
+                    position="top-right"
+                    size={50}
+                    top="1em"
+                    right="1em"
+                />
+
+                {/* Refresh Button - Fixed top right */}
+                <CircleButton
+                    icon={<RefreshCw size={22} color={colors.eventPrimary} />}
+                    onClick={handleRefresh}
+                    disabled={loading || loadingAccepted}
+                    position="top-right"
+                    size={50}
+                    top="1em"
+                    right="5.5em"
+                />
+
+                {/* Error messages */}
+                {error && (
+                    <div style={{
+                        width: '90%',
+                        marginTop: '4em',
+                        padding: '0.75em 1em',
+                        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                        borderRadius: '12px',
+                        color: '#c0392b',
+                        fontSize: '0.9em',
+                        fontWeight: '500',
+                        textAlign: 'center',
+                        position: 'relative',
+                        zIndex: 1,
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+                    }}>
+                        {error}
+                    </div>
+                )}
+
+                {errorAccepted && (
+                    <div style={{
+                        width: '90%',
+                        marginTop: error ? '0.5em' : '4em',
+                        padding: '0.75em 1em',
+                        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                        borderRadius: '12px',
+                        color: '#c0392b',
+                        fontSize: '0.9em',
+                        fontWeight: '500',
+                        textAlign: 'center',
+                        position: 'relative',
+                        zIndex: 1,
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+                    }}>
+                        {errorAccepted}
+                    </div>
+                )}
+
+                {/* My Events Section */}
+                <div style={{
+                    width: '100%',
+                    marginTop: error || errorAccepted ? '1em' : '3em',
+                    position: 'relative',
+                    zIndex: 1
+                }}>
+                    <SectionTitle align="left" fontSize="2em">
+                        МОИ СОБЫТИЯ
+                    </SectionTitle>
+
+                    <EventList
+                        events={myEvents}
+                        loading={loading}
+                        onEventClick={(event) => navigate(`/events/${event.id}/detail`)}
+                        pendingRequestCounts={pendingRequestCounts}
+                        emptyTitle="Нет событий"
+                        emptyMessage="Вы ещё не создали ни одного события"
+                    />
+                </div>
+
+                {/* Accepted Requests Section */}
+                <div style={{
+                    width: '100%',
+                    marginTop: '2em',
+                    position: 'relative',
+                    zIndex: 1
+                }}>
+                    <SectionTitle align="right" fontSize="2em">
+                        ПРИНЯТЫЕ ЗАПРОСЫ
+                    </SectionTitle>
+
+                    <EventList
+                        events={acceptedRequests}
+                        loading={loadingAccepted}
+                        onEventClick={(event) => navigate(`/events/${event.id}/detail`)}
+                        emptyTitle="Нет запросов"
+                        emptyMessage="Вы ещё не приняли ни одного запроса"
+                    />
+                </div>
             </div>
-          )}
-        </Section>
-      </List>
-
-      {/* Event Drawer */}
-      <AnimatePresence>
-        {selectedEvent && (
-          <EventDrawer
-            event={selectedEvent}
-            onClose={() => setSelectedEvent(null)}
-            onLeave={handleLeaveEvent}
-            onDelete={handleDeleteEvent}
-            onEdit={handleEditEvent}
-            onDeleteParticipant={handleDeleteParticipant}
-            isOwner={myEvents.some(e => e.id === selectedEvent.id)}
-            onAttendeeClick={setSelectedAttendee}
-            onEventUpdate={handleEventUpdate}
-          />
-        )}
-      </AnimatePresence>
-
-      {/* Attendee Profile Drawe4r */}
-      <AnimatePresence>
-        {selectedAttendee && (
-          <ProfileDrawer
-            profile={selectedAttendee}
-            onClose={() => setSelectedAttendee(null)}
-          />
-        )}
-      </AnimatePresence>
-    </Page>
-  );
+        </Page>
+    );
 }

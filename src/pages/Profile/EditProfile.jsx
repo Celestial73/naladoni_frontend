@@ -1,34 +1,41 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-    Avatar,
-    Button,
-    Cell,
-    List,
-    Section,
-    Input,
-    Textarea,
-    IconButton
-} from '@telegram-apps/telegram-ui';
-import {
-    Trash2,
-    Plus as PlusIcon,
-    X as XIcon,
-    Info,
-    Image as ImageIcon,
-} from 'lucide-react';
 import { Page } from '@/components/Layout/Page.jsx';
+import { HalftoneBackground } from '@/components/HalftoneBackground.jsx';
+import { CircleButton } from '@/components/CircleButton/CircleButton.jsx';
+import { colors } from '@/constants/colors.js';
+import { EditFieldCard } from '@/components/Profile/ProfileEdit/EditFieldCard.jsx';
+import { PhotoEditRow } from '@/components/Profile/ProfileEdit/PhotoEditRow.jsx';
+import { EditInfoCard } from '@/components/Profile/ProfileEdit/EditInfoCard.jsx';
+import { SectionTitle } from '@/pages/Events/SectionTitle.jsx';
 import useAuth from '@/hooks/useAuth';
 import { profileService } from '@/services/api/profileService.js';
-import { confirmAction } from '@/utils/confirmDialog.js';
+import { Save, ArrowLeft, Palette } from 'lucide-react';
+import { normalizeApiColor, darkenHex } from '@/utils/colorUtils.js';
+import { useDataCache } from '@/context/DataCacheProvider.jsx';
+import { LoadingPage } from '@/components/LoadingPage.jsx';
+
+const INTEREST_COLORS = [
+    '#e74c3c', '#27ae60', '#f39c12', '#8e44ad',
+    '#2980b9', '#e67e22', '#1abc9c', '#c0392b',
+    '#d35400', '#2c3e50', '#16a085', '#7f8c8d',
+];
+
+function getInterestColor(index) {
+    return INTEREST_COLORS[index % INTEREST_COLORS.length];
+}
 
 export function EditProfile() {
     const navigate = useNavigate();
     const { auth } = useAuth();
-    const [loading, setLoading] = useState(false);
+    const { updateProfileCache } = useDataCache();
+    const fileInputRef = useRef(null);
+
     const [fetching, setFetching] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [uploadingPhotos, setUploadingPhotos] = useState(false);
+    const [deletingPhotos, setDeletingPhotos] = useState(false);
     const [error, setError] = useState(null);
-    const bioTextareaRef = useRef(null);
 
     const [formData, setFormData] = useState({
         name: auth.user?.name || '',
@@ -36,17 +43,12 @@ export function EditProfile() {
         photos: [],
         bio: '',
         gender: '',
-        showBio: true,
-        showInterests: true,
         customFields: [],
         interests: [],
+        backgroundColor: 'd92326',
     });
-    const [selectedFiles, setSelectedFiles] = useState([]);
-    const [uploadingPhotos, setUploadingPhotos] = useState(false);
-    const [deletingPhotos, setDeletingPhotos] = useState(false);
-    const fileInputRef = useRef(null);
 
-    // Fetch profile data on mount
+    // Fetch profile on mount
     useEffect(() => {
         if (!auth?.initData) {
             setFetching(false);
@@ -60,21 +62,21 @@ export function EditProfile() {
                 setFetching(true);
                 setError(null);
                 const response = await profileService.getMyProfile(abortController.signal);
-                
+
                 if (response) {
                     setFormData({
                         name: response.display_name || auth.user?.name || '',
+                        age: response.age?.toString() || '',
                         photos: response.photos || [],
                         bio: response.bio || '',
                         gender: response.gender || '',
-                        interests: response.interests || [],
                         customFields: (response.custom_fields || []).map((field, index) => ({
-                            ...field,
-                            id: field.id || `field-${index}-${Date.now()}`
+                            id: field.id || `field-${index}-${Date.now()}`,
+                            title: field.title || '',
+                            value: field.value || '',
                         })),
-                        showBio: response.showBio !== undefined ? response.showBio : true,
-                        showInterests: response.showInterests !== undefined ? response.showInterests : true,
-                        age: response.age?.toString() || '',
+                        interests: response.interests || [],
+                        backgroundColor: response.background_color || 'd92326',
                     });
                 }
             } catch (err) {
@@ -90,122 +92,116 @@ export function EditProfile() {
 
         fetchProfile();
 
-        return () => {
-            abortController.abort();
-        };
+        return () => abortController.abort();
     }, [auth?.initData, auth.user?.name]);
 
-    // Auto-resize bio textarea
-    useEffect(() => {
-        if (bioTextareaRef.current && formData.showBio) {
-            const timer = setTimeout(() => {
-                if (bioTextareaRef.current) {
-                    bioTextareaRef.current.style.height = 'auto';
-                    bioTextareaRef.current.style.height = `${bioTextareaRef.current.scrollHeight}px`;
-                }
-            }, 0);
-            return () => clearTimeout(timer);
-        }
-    }, [formData.bio, formData.showBio]);
-
+    // --- Generic field change ---
     const handleChange = (field, value) => {
         setFormData(prev => ({ ...prev, [field]: value }));
         setError(null);
     };
 
-    const handleSubmit = async (e) => {
-        e?.preventDefault();
+    // --- Photo handlers ---
+    const handlePhotoAddClick = () => {
+        if (uploadingPhotos || deletingPhotos) return;
+        fileInputRef.current?.click();
+    };
+
+    const handleFileSelect = (e) => {
+        const files = Array.from(e.target.files);
+        if (files.length === 0) return;
+
+        const maxSize = 5 * 1024 * 1024; // 5MB
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+
+        for (const file of files) {
+            if (!allowedTypes.includes(file.type)) {
+                setError('Допустимы только изображения (JPEG, PNG, GIF, WebP)');
+                e.target.value = '';
+                return;
+            }
+            if (file.size > maxSize) {
+                setError('Максимальный размер файла — 5MB');
+                e.target.value = '';
+                return;
+            }
+        }
+
+        uploadPhotos(files);
+        e.target.value = '';
+    };
+
+    const uploadPhotos = async (files) => {
+        setUploadingPhotos(true);
         setError(null);
-
-        setLoading(true);
         try {
-            // Map formData to backend format
-            const payload = {
-                display_name: formData.name,
-                age: formData.age ? parseInt(formData.age) : undefined,
-                bio: formData.bio,
-                gender: formData.gender,
-                interests: formData.interests,
-                custom_fields: formData.customFields.map(field => ({
-                    title: field.title,
-                    value: field.value
-                })),
-                showBio: formData.showBio,
-                showInterests: formData.showInterests,
-            };
-            
-            // Remove undefined fields
-            Object.keys(payload).forEach(key => {
-                if (payload[key] === undefined) {
-                    delete payload[key];
-                }
-            });
-            
-            await profileService.updateProfile(payload);
-            navigate('/profile');
+            const response = await profileService.uploadPhotos(files);
+            setFormData(prev => ({ ...prev, photos: response.photos || [] }));
         } catch (err) {
-            setError(err.message || 'Failed to save profile');
+            setError(err.message || 'Не удалось загрузить фото');
         } finally {
-            setLoading(false);
+            setUploadingPhotos(false);
         }
     };
 
-    const deleteSection = (section) => {
-        setFormData(prev => ({ ...prev, [section]: false }));
-    };
-    
-    const restoreSection = (section) => {
-        setFormData(prev => ({ ...prev, [section]: true }));
-        // Trigger resize for bio textarea if restoring bio section
-        if (section === 'showBio') {
-            setTimeout(() => {
-                if (bioTextareaRef.current) {
-                    bioTextareaRef.current.style.height = 'auto';
-                    bioTextareaRef.current.style.height = `${bioTextareaRef.current.scrollHeight}px`;
-                }
-            }, 10);
+    const handleDeletePhoto = async (index) => {
+        const photoUrl = formData.photos[index];
+        if (!photoUrl || deletingPhotos) return;
+
+        setDeletingPhotos(true);
+        setError(null);
+        try {
+            const response = await profileService.deletePhotos([photoUrl]);
+            setFormData(prev => ({ ...prev, photos: response.photos || [] }));
+        } catch (err) {
+            setError(err.message || 'Не удалось удалить фото');
+        } finally {
+            setDeletingPhotos(false);
         }
     };
 
+    // --- Custom fields (fun facts) handlers ---
     const addCustomField = () => {
-        const newField = {
-            id: Date.now().toString(),
-            title: '',
-            value: '',
-        };
         setFormData(prev => ({
             ...prev,
-            customFields: [...prev.customFields, newField],
+            customFields: [...prev.customFields, {
+                id: Date.now().toString(),
+                title: '',
+                value: '',
+            }],
         }));
     };
 
-    const deleteCustomField = (id) => {
+    const deleteCustomField = (index) => {
         setFormData(prev => ({
             ...prev,
-            customFields: prev.customFields.filter((field) => field.id !== id),
+            customFields: prev.customFields.filter((_, i) => i !== index),
         }));
     };
 
-    const updateCustomField = (id, key, newValue) => {
+    const updateCustomFieldTitle = (index, newTitle) => {
         setFormData(prev => ({
             ...prev,
-            customFields: prev.customFields.map((field) =>
-                field.id === id ? { ...field, [key]: newValue } : field
+            customFields: prev.customFields.map((field, i) =>
+                i === index ? { ...field, title: newTitle } : field
             ),
         }));
     };
 
+    const updateCustomFieldValue = (index, newValue) => {
+        setFormData(prev => ({
+            ...prev,
+            customFields: prev.customFields.map((field, i) =>
+                i === index ? { ...field, value: newValue } : field
+            ),
+        }));
+    };
+
+    // --- Interests handlers ---
     const addInterest = () => {
         setFormData(prev => ({
             ...prev,
             interests: [...prev.interests, ''],
-        }));
-    };
-
-    const deleteInterest = (interestToDelete) => {
-        setFormData(prev => ({
-            ...prev,
-            interests: prev.interests.filter((interest) => interest !== interestToDelete),
         }));
     };
 
@@ -217,539 +213,354 @@ export function EditProfile() {
         });
     };
 
-    const validateFiles = (files) => {
-        const maxFiles = 3;
-        const maxSize = 5 * 1024 * 1024; // 5MB
-        const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-
-        if (files.length > maxFiles) {
-            return { valid: false, error: `You can only upload up to ${maxFiles} images` };
-        }
-
-        for (const file of files) {
-            if (!allowedTypes.includes(file.type)) {
-                return { valid: false, error: 'Only image files are allowed (JPEG, PNG, GIF, WebP)' };
-            }
-            if (file.size > maxSize) {
-                return { valid: false, error: `File size too large. Maximum size is 5MB per file` };
-            }
-        }
-
-        return { valid: true };
+    const deleteInterest = (index) => {
+        setFormData(prev => ({
+            ...prev,
+            interests: prev.interests.filter((_, i) => i !== index),
+        }));
     };
 
-    const handleFileSelect = (e) => {
-        const files = Array.from(e.target.files);
-        if (files.length === 0) return;
-
-        const validation = validateFiles(files);
-        if (!validation.valid) {
-            setError(validation.error);
-            e.target.value = ''; // Reset input
-            return;
-        }
-
-        setSelectedFiles(files);
+    // --- Submit handler ---
+    const handleSubmit = async () => {
         setError(null);
-    };
-
-    const handleUploadPhotos = async () => {
-        if (selectedFiles.length === 0) {
-            setError('Please select at least one image to upload');
-            return;
-        }
-
-        setUploadingPhotos(true);
-        setError(null);
-
+        setSaving(true);
         try {
-            const response = await profileService.uploadPhotos(selectedFiles);
-            
-            // Update formData with the new photos array from response
-            setFormData(prev => ({
-                ...prev,
-                photos: response.photos || []
-            }));
-            
-            // Clear selected files
-            setSelectedFiles([]);
-            if (fileInputRef.current) {
-                fileInputRef.current.value = '';
-            }
+            const payload = {
+                display_name: formData.name,
+                age: formData.age ? parseInt(formData.age) : undefined,
+                bio: formData.bio,
+                gender: formData.gender,
+                interests: formData.interests.filter(i => i.trim() !== ''),
+                custom_fields: formData.customFields.map(field => ({
+                    title: field.title,
+                    value: field.value,
+                })),
+                background_color: formData.backgroundColor,
+            };
+
+            // Remove undefined fields
+            Object.keys(payload).forEach(key => {
+                if (payload[key] === undefined) delete payload[key];
+            });
+
+            const updatedProfile = await profileService.updateProfile(payload);
+            updateProfileCache({ profileData: updatedProfile });
+            navigate('/profile');
         } catch (err) {
-            setError(err.message || 'Failed to upload photos');
+            setError(err.message || 'Не удалось сохранить профиль');
         } finally {
-            setUploadingPhotos(false);
+            setSaving(false);
         }
     };
 
-    const handleDeletePhoto = async (photoUrl) => {
-        const confirmed = await confirmAction(
-            'Are you sure you want to delete this photo?',
-            'Delete Photo'
-        );
+    // --- Data mapping for child components ---
+    const funFactsForCard = formData.customFields.map(field => ({
+        id: field.id,
+        title: field.title,
+        text: field.value,
+    }));
 
-        if (!confirmed) {
-            return;
-        }
+    const interestsForCard = formData.interests.map((label, index) => ({
+        label,
+        color: getInterestColor(index),
+    }));
 
-        setDeletingPhotos(true);
-        setError(null);
+    const isLoading = saving || uploadingPhotos || deletingPhotos;
 
-        try {
-            const response = await profileService.deletePhotos([photoUrl]);
-            
-            // Update formData with the new photos array from response
-            setFormData(prev => ({
-                ...prev,
-                photos: response.photos || []
-            }));
-        } catch (err) {
-            setError(err.message || 'Failed to delete photo');
-        } finally {
-            setDeletingPhotos(false);
-        }
-    };
+    // Derive background colors from form state
+    const bgColor = normalizeApiColor(formData.backgroundColor, colors.profilePrimary);
+    const bgColorDark = darkenHex(bgColor, 0.5);
 
+    // --- Loading state ---
     if (fetching) {
-        return (
-            <Page>
-                <div style={{ padding: 20, textAlign: 'center', opacity: 0.5 }}>
-                    Loading profile...
-                </div>
-            </Page>
-        );
+        return <LoadingPage text="Загрузка профиля..." />;
     }
 
     return (
         <Page>
-            <form onSubmit={handleSubmit}>
-                <List>
-                    <Section header="Basic Information">
-                        <div style={{ padding: '12px 20px' }}>
-                            <div style={{ 
-                                fontSize: '14px', 
-                                fontWeight: 500, 
-                                color: 'var(--tgui--hint_color)',
-                                marginBottom: '8px'
-                            }}>
-                                Display Name
-                            </div>
-                            <Input
-                                value={formData.name}
-                                onChange={(e) => handleChange('name', e.target.value)}
-                                placeholder="Enter your name"
-                            />
-                        </div>
+            <div style={{
+                backgroundColor: bgColor,
+                minHeight: '100vh',
+                width: '100%',
+                padding: '2%',
+                paddingBottom: '3em',
+                boxSizing: 'border-box',
+                display: 'flex',
+                flex: 1,
+                flexDirection: 'column',
+                justifyContent: 'flex-start',
+                alignItems: 'center',
+                position: 'relative',
+                overflow: 'visible'
+            }}>
+                {/* Fixed background */}
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    pointerEvents: 'none',
+                    zIndex: 0
+                }}>
+                    <HalftoneBackground color={bgColorDark} />
+                </div>
 
-                        <div style={{ padding: '12px 20px' }}>
-                            <div style={{ 
-                                fontSize: '14px', 
-                                fontWeight: 500, 
-                                color: 'var(--tgui--hint_color)',
-                                marginBottom: '8px'
-                            }}>
-                                Age
-                            </div>
-                            <Input
-                                type="number"
-                                value={formData.age}
-                                onChange={(e) => handleChange('age', e.target.value)}
-                                placeholder="Enter your age"
-                                min="1"
-                            />
-                        </div>
+                {/* Back button */}
+                <CircleButton
+                    icon={<ArrowLeft size={20} color={bgColor} />}
+                    onClick={() => navigate('/profile')}
+                    disabled={isLoading}
+                    position="top-left"
+                />
 
-                        <div style={{ padding: '12px 20px' }}>
-                            <div style={{ 
-                                fontSize: '14px', 
-                                fontWeight: 500, 
-                                color: 'var(--tgui--hint_color)',
-                                marginBottom: '8px'
-                            }}>
-                                Gender
-                            </div>
-                            <Input
-                                value={formData.gender}
-                                onChange={(e) => handleChange('gender', e.target.value)}
-                                placeholder="Enter your gender"
-                            />
-                        </div>
+                {/* Save button (floating) */}
+                <CircleButton
+                    icon={<Save size={18} color={bgColor} />}
+                    onClick={handleSubmit}
+                    disabled={isLoading}
+                    position="top-right"
+                />
 
-                        {/* Photo Upload Section */}
-                        <div style={{ padding: '12px 20px' }}>
-                            <div style={{ 
-                                fontSize: '14px', 
-                                fontWeight: 500, 
-                                color: 'var(--tgui--hint_color)',
-                                marginBottom: '8px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '8px'
-                            }}>
-                                <ImageIcon size={16} />
-                                Profile Photos (up to 3)
-                            </div>
-                            
-                            {/* File Input */}
-                            <input
-                                ref={fileInputRef}
-                                type="file"
-                                accept="image/jpeg,image/png,image/gif,image/webp"
-                                multiple
-                                onChange={handleFileSelect}
-                                style={{ display: 'none' }}
-                            />
-                            
-                            <Button
-                                mode="outline"
-                                size="m"
-                                onClick={() => fileInputRef.current?.click()}
-                                disabled={uploadingPhotos || deletingPhotos || loading}
-                                style={{ width: '100%', marginBottom: '12px' }}
-                            >
-                                <ImageIcon size={16} style={{ marginRight: 8 }} />
-                                Select Images
-                            </Button>
+                {/* Hidden file input for photo upload */}
+                <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/gif,image/webp"
+                    multiple
+                    onChange={handleFileSelect}
+                    style={{ display: 'none' }}
+                />
 
-                            {/* Selected Files Preview */}
-                            {selectedFiles.length > 0 && (
-                                <div style={{ marginBottom: '12px' }}>
-                                    <div style={{ 
-                                        fontSize: '12px', 
-                                        color: 'var(--tgui--hint_color)',
-                                        marginBottom: '8px'
-                                    }}>
-                                        {selectedFiles.length} file(s) selected
-                                    </div>
-                                    <div style={{ 
-                                        display: 'grid', 
-                                        gridTemplateColumns: 'repeat(3, 1fr)', 
-                                        gap: '8px',
-                                        marginBottom: '8px'
-                                    }}>
-                                        {selectedFiles.map((file, index) => (
-                                            <div key={index} style={{ position: 'relative' }}>
-                                                <img
-                                                    src={URL.createObjectURL(file)}
-                                                    alt={`Preview ${index + 1}`}
-                                                    style={{
-                                                        width: '100%',
-                                                        aspectRatio: '1',
-                                                        objectFit: 'cover',
-                                                        borderRadius: '8px',
-                                                        border: '1px solid var(--tgui--separator_color, #e0e0e0)'
-                                                    }}
-                                                />
-                                            </div>
-                                        ))}
-                                    </div>
-                                    <Button
-                                        mode="filled"
-                                        size="m"
-                                        onClick={handleUploadPhotos}
-                                        disabled={uploadingPhotos || deletingPhotos || loading}
-                                        style={{ width: '100%' }}
-                                    >
-                                        {uploadingPhotos ? 'Uploading...' : 'Upload Photos'}
-                                    </Button>
-                                </div>
-                            )}
+                {/* Header banner */}
+                <div style={{ display: 'contents' }}>
+                    <div style={{
+                        width: '90%',
+                        marginTop: '5%',
+                        position: 'relative',
+                        zIndex: 1,
+                        backgroundColor: colors.white,
+                        borderRadius: '20px',
+                        padding: '1em',
+                        boxSizing: 'border-box',
+                        textAlign: 'center',
+                        fontSize: '1.5em',
+                        fontWeight: '900',
+                        color: colors.textDark
+                    }}>
+                        Это настройки профиля.
+                    </div>
 
-                            {/* Existing Photos Preview */}
-                            {formData.photos && formData.photos.length > 0 && (
-                                <div>
-                                    <div style={{ 
-                                        fontSize: '12px', 
-                                        color: 'var(--tgui--hint_color)',
-                                        marginBottom: '8px',
-                                        marginTop: selectedFiles.length > 0 ? '12px' : '0'
-                                    }}>
-                                        Current photos ({formData.photos.length})
-                                    </div>
-                                    <div style={{ 
-                                        display: 'grid', 
-                                        gridTemplateColumns: 'repeat(3, 1fr)', 
-                                        gap: '8px'
-                                    }}>
-                                        {formData.photos.map((photoUrl, index) => (
-                                            <div key={index} style={{ position: 'relative' }}>
-                                                <img
-                                                    src={photoUrl}
-                                                    alt={`Photo ${index + 1}`}
-                                                    style={{
-                                                        width: '100%',
-                                                        aspectRatio: '1',
-                                                        objectFit: 'cover',
-                                                        borderRadius: '8px',
-                                                        border: '1px solid var(--tgui--separator_color, #e0e0e0)'
-                                                    }}
-                                                />
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleDeletePhoto(photoUrl)}
-                                                    disabled={deletingPhotos || loading}
-                                                    style={{
-                                                        position: 'absolute',
-                                                        top: '4px',
-                                                        right: '4px',
-                                                        background: 'rgba(0, 0, 0, 0.6)',
-                                                        border: 'none',
-                                                        borderRadius: '50%',
-                                                        width: '24px',
-                                                        height: '24px',
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        justifyContent: 'center',
-                                                        cursor: deletingPhotos || loading ? 'not-allowed' : 'pointer',
-                                                        opacity: deletingPhotos || loading ? 0.5 : 1,
-                                                        transition: 'opacity 0.2s'
-                                                    }}
-                                                    title="Delete photo"
-                                                >
-                                                    <Trash2 size={12} color="white" />
-                                                </button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </Section>
 
-                    {/* Bio Section */}
-                    {formData.showBio && (
-                        <Section header={
-                            <div style={{ 
-                                display: 'flex', 
-                                alignItems: 'center', 
-                                justifyContent: 'space-between', 
+                </div>
+
+                {/* Background color picker */}
+                <div style={{
+                    width: '90%',
+                    marginTop: '1em',
+                    position: 'relative',
+                    zIndex: 1,
+                    backgroundColor: colors.white,
+                    borderRadius: '16px',
+                    padding: '0.8em 1em',
+                    boxSizing: 'border-box',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.75em',
+                    boxShadow: '4px 6px 0px rgba(0, 0, 0, 0.2)'
+                }}>
+                    <Palette size={20} color={bgColor} style={{ flexShrink: 0 }} />
+                    <span style={{
+                        fontSize: '0.9em',
+                        fontWeight: '600',
+                        color: colors.textDark,
+                        whiteSpace: 'nowrap'
+                    }}>
+                        Цвет фона:
+                    </span>
+                    <label style={{
+                        position: 'relative',
+                        width: '36px',
+                        height: '36px',
+                        flexShrink: 0,
+                        cursor: 'pointer',
+                    }}>
+                        <div style={{
+                            width: '36px',
+                            height: '36px',
+                            borderRadius: '50%',
+                            backgroundColor: bgColor,
+                            border: `2px solid ${colors.borderGrey}`,
+                            boxSizing: 'border-box',
+                        }} />
+                        <input
+                            type="color"
+                            value={bgColor}
+                            onChange={(e) => {
+                                const hex = e.target.value.replace('#', '');
+                                handleChange('backgroundColor', hex);
+                            }}
+                            style={{
+                                position: 'absolute',
+                                top: 0,
+                                left: 0,
                                 width: '100%',
+                                height: '100%',
+                                opacity: 0,
+                                cursor: 'pointer',
+                            }}
+                        />
+                    </label>
+                    <span style={{
+                        fontSize: '0.85em',
+                        fontFamily: 'monospace',
+                        color: colors.textLight,
+                        textTransform: 'uppercase'
+                    }}>
+                        #{formData.backgroundColor}
+                    </span>
+                </div>
+
+                {/* Error message */}
+                {error && (
+                    <div style={{
+                        width: '90%',
+                        marginTop: '1em',
+                        padding: '0.75em 1em',
+                        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                        borderRadius: '12px',
+                        color: '#c0392b',
+                        fontSize: '0.9em',
+                        fontWeight: '500',
+                        textAlign: 'center',
+                        position: 'relative',
+                        zIndex: 1,
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+                    }}>
+                        {error}
+                    </div>
+                )}
+
+                {/* Name and age inputs */}
+                <div style={{
+                    width: '100%',
+                    position: 'relative',
+                    zIndex: 1,
+                    marginTop: '1.5em',
+                    minHeight: '10em'
+                }}>
+                    <EditFieldCard
+                        title="Имя!"
+                        placeholder="Введите имя"
+                        value={formData.name}
+                        onChange={(e) => handleChange('name', e.target.value)}
+                        style={{
+                            width: '45%',
+                            position: 'absolute',
+                            top: 0,
+                            left: '3%'
+                        }}
+                    />
+
+                    <EditFieldCard
+                        title="Возраст!"
+                        placeholder="Введите возраст"
+                        value={formData.age}
+                        onChange={(e) => handleChange('age', e.target.value)}
+                        flipped
+                        style={{
+                            width: '45%',
+                            position: 'absolute',
+                            top: '3em',
+                            right: '3%'
+                        }}
+                    />
+                </div>
+
+                {/* Photos section */}
+                <div style={{ display: 'contents' }}>
+                    <div style={{
+                        alignSelf: 'flex-start',
+                        width: '100%',
+                        position: 'relative',
+                        zIndex: 1
+                    }}>
+                        <SectionTitle align="left" fontSize="3em">
+                            ФОТКИ:
+                        </SectionTitle>
+                    </div>
+
+                    <div style={{
+                        width: '100%',
+                        padding: '0 2%',
+                        boxSizing: 'border-box',
+                        position: 'relative',
+                        zIndex: 1,
+                        marginTop: '0.5em'
+                    }}>
+                        <PhotoEditRow
+                            photos={formData.photos}
+                            onAddClick={handlePhotoAddClick}
+                            onDeleteClick={handleDeletePhoto}
+                        />
+                        {uploadingPhotos && (
+                            <div style={{
+                                textAlign: 'center',
+                                marginTop: '0.5em',
+                                color: colors.white,
+                                fontSize: '0.9em',
+                                fontWeight: '600'
                             }}>
-                                <span style={{ 
-                                    fontSize: 'var(--tgui--section_header_font_size, 14px)',
-                                    fontWeight: 'var(--tgui--section_header_font_weight, 500)',
-                                    color: 'var(--tgui--section_header_text_color, var(--tgui--hint_color))',
-                                    lineHeight: 'var(--tgui--section_header_line_height, 1.5)',
-                                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-                                    marginLeft: '20px'
-                                }}>About</span>
-                                <IconButton mode="plain" onClick={() => deleteSection('showBio')} style={{ marginRight: '20px' }}>
-                                    <Trash2 size={16} />
-                                </IconButton>
+                                Загрузка...
                             </div>
-                        }>
-                            <div style={{ padding: '12px 20px' }}>
-                                <Textarea
-                                    ref={bioTextareaRef}
-                                    value={formData.bio}
-                                    onChange={(e) => {
-                                        handleChange('bio', e.target.value);
-                                        // Auto-resize on change
-                                        if (bioTextareaRef.current) {
-                                            bioTextareaRef.current.style.height = 'auto';
-                                            bioTextareaRef.current.style.height = `${bioTextareaRef.current.scrollHeight}px`;
-                                        }
-                                    }}
-                                    placeholder="Tell people about yourself..."
-                                    rows={4}
-                                    style={{ 
-                                        width: '100%',
-                                        resize: 'vertical',
-                                        minHeight: '80px'
-                                    }}
-                                />
-                            </div>
-                        </Section>
-                    )}
+                        )}
+                    </div>
+                </div>
 
-                    {/* Details Section */}
-                    <Section header="Details">
-                        {/* Custom Fields */}
-                        {formData.customFields.map((field) => (
-                            <div
-                                key={field.id}
-                                style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    padding: '12px 20px',
-                                    gap: '12px'
-                                }}
-                            >
-                                <Avatar size={28} style={{ background: 'var(--tgui--secondary_bg_color)', flexShrink: 0 }}><Info size={16} /></Avatar>
-                                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                    <Input
-                                        type="text"
-                                        value={field.title || ''}
-                                        onChange={(e) => updateCustomField(field.id, 'title', e.target.value)}
-                                        placeholder="Field Title"
-                                        style={{
-                                            fontSize: '14px',
-                                        }}
-                                    />
-                                    <Input
-                                        type="text"
-                                        value={field.value || ''}
-                                        onChange={(e) => updateCustomField(field.id, 'value', e.target.value)}
-                                        placeholder="Field Value"
-                                    />
-                                </div>
-                                <IconButton mode="plain" onClick={() => deleteCustomField(field.id)} style={{ flexShrink: 0 }}><Trash2 size={16} /></IconButton>
-                            </div>
-                        ))}
+                {/* Info card edit section */}
+                <EditInfoCard
+                    bio={formData.bio}
+                    onBioChange={(value) => handleChange('bio', value)}
+                    funFacts={funFactsForCard}
+                    onTitleChange={updateCustomFieldTitle}
+                    onTextChange={updateCustomFieldValue}
+                    onIconClick={() => {}}
+                    onDeleteItem={deleteCustomField}
+                    onAddItem={addCustomField}
+                    interests={interestsForCard}
+                    onInterestChange={updateInterest}
+                    onDeleteInterest={deleteInterest}
+                    onAddInterest={addInterest}
+                    accentColor={bgColor}
+                />
 
-                        {/* Add Custom Field */}
-                        <div style={{ padding: '12px 20px' }}>
-                            <Button mode="plain" size="s" onClick={addCustomField}>
-                                <PlusIcon size={16} style={{ marginRight: 5 }} /> Add Custom Field
-                            </Button>
-                        </div>
-                    </Section>
-
-                    {/* Interests Section */}
-                    {formData.showInterests && (
-                        <Section header={
-                            <div style={{ 
-                                display: 'flex', 
-                                alignItems: 'center', 
-                                justifyContent: 'space-between', 
-                                width: '100%',
-                                padding: '0 20px'
-                            }}>
-                                <span style={{ 
-                                    fontSize: 'var(--tgui--section_header_font_size, 14px)',
-                                    fontWeight: 'var(--tgui--section_header_font_weight, 500)',
-                                    color: 'var(--tgui--section_header_text_color, var(--tgui--hint_color))',
-                                    lineHeight: 'var(--tgui--section_header_line_height, 1.5)',
-                                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
-                                }}>Interests</span>
-                                <IconButton mode="plain" onClick={() => deleteSection('showInterests')}>
-                                    <Trash2 size={16} />
-                                </IconButton>
-                            </div>
-                        }>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, padding: '0 20px 20px' }}>
-                                {formData.interests.map((interest, index) => (
-                                    <div
-                                        key={index}
-                                        style={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: 6,
-                                            padding: '6px 12px',
-                                            background: 'var(--tgui--secondary_bg_color)',
-                                            borderRadius: 16,
-                                            fontSize: '16px',
-                                            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-                                            color: 'var(--tgui--text_color, inherit)',
-                                            lineHeight: '1.5'
-                                        }}
-                                    >
-                                        <input
-                                            type="text"
-                                            value={interest}
-                                            onChange={(e) => updateInterest(index, e.target.value)}
-                                            style={{
-                                                background: 'transparent',
-                                                border: 'none',
-                                                borderBottom: '2px solid var(--tgui--hint_color, #999)',
-                                                outline: 'none',
-                                                color: 'var(--tgui--text_color, inherit)',
-                                                fontSize: '16px',
-                                                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-                                                padding: '0 2px',
-                                                display: 'inline-block',
-                                                minWidth: '40px',
-                                                width: 'auto',
-                                                maxWidth: '200px',
-                                                lineHeight: '1.5'
-                                            }}
-                                        />
-                                        <XIcon
-                                            size={14}
-                                            style={{ cursor: 'pointer', opacity: 0.6 }}
-                                            onClick={() => deleteInterest(interest)}
-                                        />
-                                    </div>
-                                ))}
-
-                                <Button mode="bezeled" size="s" onClick={addInterest} style={{ borderRadius: 16 }}>
-                                    <PlusIcon size={14} /> Add
-                                </Button>
-                            </div>
-                        </Section>
-                    )}
-
-                    {/* Hidden Sections - Show to allow restoration */}
-                    {(!formData.showBio || !formData.showInterests) && (
-                        <Section header="Hidden Sections">
-                            {!formData.showBio && (
-                                <Cell
-                                    before={<Avatar size={28} style={{ background: 'var(--tgui--secondary_bg_color)' }}><Info size={16} /></Avatar>}
-                                    description="About section is hidden"
-                                    after={
-                                        <Button size="s" onClick={() => restoreSection('showBio')} mode="filled">
-                                            <PlusIcon size={16} style={{ marginRight: 5 }} /> Restore
-                                        </Button>
-                                    }
-                                >
-                                    About
-                                </Cell>
-                            )}
-                            {!formData.showInterests && (
-                                <Cell
-                                    before={<Avatar size={28} style={{ background: 'var(--tgui--secondary_bg_color)' }}><Info size={16} /></Avatar>}
-                                    description="Interests section is hidden"
-                                    after={
-                                        <Button size="s" onClick={() => restoreSection('showInterests')} mode="filled">
-                                            <PlusIcon size={16} style={{ marginRight: 5 }} /> Restore
-                                        </Button>
-                                    }
-                                >
-                                    Interests
-                                </Cell>
-                            )}
-                        </Section>
-                    )}
-
-                    {error && (
-                        <Section>
-                            <div style={{ 
-                                padding: '12px 20px', 
-                                color: 'var(--tgui--destructive_text_color)',
-                                fontSize: '14px',
-                                textAlign: 'center'
-                            }}>
-                                {error}
-                            </div>
-                        </Section>
-                    )}
-
-                    <Section>
-                        <div style={{ padding: '0 20px 20px', display: 'flex', gap: '12px' }}>
-                            <Button
-                                mode="outline"
-                                size="l"
-                                stretched
-                                onClick={() => navigate('/profile')}
-                                disabled={loading}
-                            >
-                                Cancel
-                            </Button>
-                            <Button
-                                mode="filled"
-                                size="l"
-                                stretched
-                                onClick={handleSubmit}
-                                disabled={loading}
-                            >
-                                {loading ? 'Saving...' : 'Save Profile'}
-                            </Button>
-                        </div>
-                    </Section>
-                </List>
-            </form>
+                {/* Bottom save button */}
+                <button
+                    onClick={handleSubmit}
+                    disabled={isLoading}
+                    style={{
+                        width: '90%',
+                        marginTop: '2em',
+                        padding: '1em',
+                        backgroundColor: colors.white,
+                        color: bgColor,
+                        border: 'none',
+                        borderRadius: '20px',
+                        fontSize: '1.3em',
+                        fontWeight: '700',
+                        cursor: isLoading ? 'not-allowed' : 'pointer',
+                        position: 'relative',
+                        zIndex: 1,
+                        boxShadow: '8px 10px 0px rgba(0, 0, 0, 0.25)',
+                        opacity: isLoading ? 0.6 : 1,
+                        fontFamily: "'Uni Sans', sans-serif",
+                        fontStyle: 'italic',
+                        letterSpacing: '0.05em'
+                    }}
+                >
+                    {saving ? 'СОХРАНЕНИЕ...' : 'СОХРАНИТЬ'}
+                </button>
+            </div>
         </Page>
     );
 }
-

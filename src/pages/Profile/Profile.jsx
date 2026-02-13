@@ -1,90 +1,45 @@
-import {
-    Avatar,
-    Cell,
-    List,
-    Section,
-} from '@telegram-apps/telegram-ui';
-import {
-    initData,
-    useSignal,
-} from '@tma.js/sdk-react';
-import {
-    Info,
-    Pencil
-} from 'lucide-react';
-import useEmblaCarousel from 'embla-carousel-react';
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-
 import { Page } from '@/components/Layout/Page.jsx';
-import { DisplayData } from '@/components/DisplayData/DisplayData.jsx';
+import { ProfileCarousel } from '@/components/Profile/ProfileCarousel.jsx';
+import { ProfileInfoCard } from '@/components/Profile/ProfileInfoCard.jsx';
+import { HalftoneBackground } from '@/components/HalftoneBackground.jsx';
 import { CircleButton } from '@/components/CircleButton/CircleButton.jsx';
+import { Info, Pen } from 'lucide-react';
+import { colors } from '@/constants/colors.js';
 import useAuth from '@/hooks/useAuth';
 import { profileService } from '@/services/api/profileService.js';
+import { useDataCache } from '@/context/DataCacheProvider.jsx';
+import { normalizeApiColor, darkenHex } from '@/utils/colorUtils.js';
+import { LoadingPage } from '@/components/LoadingPage.jsx';
+
+// Rotating palette for interest chips
+const INTEREST_COLORS = [
+    '#e74c3c', '#27ae60', '#f39c12', '#8e44ad',
+    '#2980b9', '#e67e22', '#1abc9c', '#c0392b',
+    '#16a085', '#d35400', '#2c3e50', '#7f8c8d',
+];
 
 export function Profile() {
     const navigate = useNavigate();
-    const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
-    const [loading, setLoading] = useState(true);
+    const { auth } = useAuth();
+    const { profileCache, updateProfileCache, isProfileCacheValid } = useDataCache();
+
+    // Restore state from cache on mount
+    const [profileData, setProfileData] = useState(profileCache.profileData || null);
+    const [loading, setLoading] = useState(!isProfileCacheValid() || !profileCache.profileData);
     const [error, setError] = useState(null);
 
-    const initDataRaw = useSignal(initData.raw);
-    const initDataState = useSignal(initData.state);
-
-    const { auth } = useAuth();
-
-    const initDataRows = useMemo(() => {
-        if (!initDataState || !initDataRaw) {
-            return;
-        }
-        return [
-            { title: 'raw', value: initDataRaw },
-            ...Object.entries(initDataState).reduce((acc, [title, value]) => {
-                if (value instanceof Date) {
-                    acc.push({ title, value: value.toISOString() });
-                } else if (!value || typeof value !== 'object') {
-                    acc.push({ title, value });
-                }
-                return acc;
-            }, []),
-        ];
-    }, [initDataState, initDataRaw]);
-
-
-
-    const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
-
-    useEffect(() => {
-        if (!emblaApi) return;
-
-        const onSelect = () => {
-            setCurrentPhotoIndex(emblaApi.selectedScrollSnap());
-        };
-
-        emblaApi.on('select', onSelect);
-
-        return () => {
-            emblaApi.off('select', onSelect);
-        };
-    }, [emblaApi]);
-
-    const [profileData, setProfileData] = useState({
-        name: auth.user?.name || '',
-        age: '',
-        photos: [],
-        bio: '',
-        gender: '',
-        id: null,
-        user: null,
-        showBio: true,
-        showInterests: true,
-        customFields: [],
-        interests: [],
-    });
-
-    // Fetch profile data from backend on component mount
+    // Fetch profile data from backend on component mount - only if cache is invalid
     useEffect(() => {
         if (!auth?.initData) {
+            setLoading(false);
+            return;
+        }
+
+        // Only fetch if cache is invalid or doesn't exist
+        if (isProfileCacheValid() && profileCache.profileData !== null) {
+            // Cache is valid, skip fetching
             setLoading(false);
             return;
         }
@@ -96,38 +51,12 @@ export function Profile() {
                 setLoading(true);
                 setError(null);
                 const response = await profileService.getMyProfile(abortController.signal);
-                
-                // Update profileData with fetched data
+
                 if (response) {
-                    setProfileData(prevData => {
-                        const data = response;
-                        // Map backend response structure to component state
-                        const updatedProfile = {
-                            ...prevData,
-                            // Map display_name to name
-                            name: data.display_name || prevData.name || '',
-                            // Map photos array from backend
-                            photos: data.photos || prevData.photos || [],
-                            // Direct mappings from backend (already camelCase)
-                            bio: data.bio || prevData.bio || '',
-                            gender: data.gender || prevData.gender || '',
-                            interests: data.interests || prevData.interests || [],
-                            // Map custom_fields (snake_case) to customFields (camelCase)
-                            // Backend uses title/value format, add id for internal tracking
-                            customFields: (data.custom_fields || prevData.customFields || []).map((field, index) => ({
-                                ...field,
-                                id: field.id || `field-${index}-${Date.now()}`
-                            })),
-                            // Store additional backend data
-                            id: data.id || prevData.id,
-                            user: data.user || prevData.user,
-                            // Visibility flags (already camelCase in backend response)
-                            showBio: data.showBio !== undefined ? data.showBio : prevData.showBio,
-                            showInterests: data.showInterests !== undefined ? data.showInterests : prevData.showInterests,
-                            // Add age if it exists in backend response
-                            age: data.age?.toString() || prevData.age || '',
-                        };
-                        return updatedProfile;
+                    setProfileData(response);
+                    // Update cache
+                    updateProfileCache({
+                        profileData: response,
                     });
                 }
             } catch (err) {
@@ -146,201 +75,205 @@ export function Profile() {
         return () => {
             abortController.abort();
         };
-    }, [auth?.initData]); // Re-fetch if initData changes (axiosPrivate is stable)
+    }, [auth?.initData, isProfileCacheValid, profileCache.profileData, updateProfileCache]);
 
-    const handleEdit = () => {
-        navigate('/profile/edit');
-    };
+    // Map backend response to component-friendly shapes
+    const name = profileData?.display_name || profileData?.name || auth.user?.name || '';
+    const age = profileData?.age ?? null;
+    const photos = profileData?.photos || [];
+    const bio = profileData?.bio || '';
+    const showBio = profileData?.showBio !== false;
+    const showInterests = profileData?.showInterests !== false;
 
-    // Show loading state
+    // Derive background colors from API background_color field
+    const bgColor = normalizeApiColor(profileData?.background_color, colors.profilePrimary);
+    const bgColorDark = darkenHex(bgColor, 0.5);
+
+    // Map custom_fields {title, value} → items {title, text, icon}
+    const items = useMemo(() => {
+        const fields = profileData?.custom_fields || [];
+        return fields.map((field) => ({
+            title: field.title || '',
+            text: field.value || '',
+            icon: <Info size={22} color={bgColor} />,
+        }));
+    }, [profileData?.custom_fields]);
+
+    // Map interests (strings) → {label, color}
+    const interests = useMemo(() => {
+        const raw = profileData?.interests || [];
+        return raw.map((interest, index) => ({
+            label: typeof interest === 'string' ? interest : interest.name || interest.label || '',
+            color: INTEREST_COLORS[index % INTEREST_COLORS.length],
+        }));
+    }, [profileData?.interests]);
+
+    // -- Loading state --
     if (loading) {
+        return <LoadingPage text="Загрузка профиля..." />;
+    }
+
+    // -- Error state (no profile data at all) --
+    if (error && !profileData) {
         return (
             <Page>
-                <List>
-                    <Section>
-                        <Cell>
-                            <div style={{ textAlign: 'center', padding: '40px 20px' }}>
-                                Loading profile...
-                            </div>
-                        </Cell>
-                    </Section>
-                </List>
+            <div style={{
+                backgroundColor: bgColor,
+                minHeight: 'calc(100vh - 80px)',
+                width: '100%',
+                padding: '2%',
+                paddingBottom: '3em',
+                boxSizing: 'border-box',
+                display: 'flex',
+                flex: 1,
+                flexDirection: 'column',
+                justifyContent: 'flex-start',
+                alignItems: 'center',
+                position: 'relative',
+                overflow: 'visible'
+            }}>
+                {/* Fixed background */}
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    pointerEvents: 'none',
+                    zIndex: 0
+                }}>
+                    <HalftoneBackground color={bgColorDark} />
+                </div>
+                    <div style={{
+                        position: 'relative',
+                        zIndex: 1,
+                        color: colors.white,
+                        textAlign: 'center'
+                    }}>
+                        <div style={{ fontSize: '1.2em', fontWeight: '600', marginBottom: '0.5em' }}>
+                            Error loading profile
+                        </div>
+                        <div style={{ fontSize: '0.9em', opacity: 0.8 }}>
+                            {error}
+                        </div>
+                    </div>
+                </div>
             </Page>
         );
     }
 
-    // Show error state
-    if (error && !profileData.name) {
-        return (
-            <Page>
-                <List>
-                    <Section>
-                        <Cell>
-                            <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--tgui--error_color)' }}>
-                                <div style={{ marginBottom: 10 }}>Error loading profile</div>
-                                <div style={{ fontSize: 14, opacity: 0.8 }}>{error}</div>
-                            </div>
-                        </Cell>
-                    </Section>
-                </List>
-            </Page>
-        );
-    }
+    // Determine what to show in the info card
+    const showInfoCard = (showBio && bio) || items.length > 0 || (showInterests && interests.length > 0);
 
     return (
         <Page>
-            {/* Floating Action Button - Top Right Corner */}
-            <CircleButton
-                icon={<Pencil size={20} color="#fff" />}
-                onClick={handleEdit}
-                position="top-right"
-                size={48}
-                top="16px"
-                right="16px"
-                backgroundColor="var(--tgui--button_color, #3390ec)"
-                boxShadow="0 2px 8px rgba(0, 0, 0, 0.15)"
-                zIndex={1000}
-            />
+            <div style={{
+                backgroundColor: bgColor,
+                minHeight: 'calc(100vh - 80px)',
+                width: '100%',
+                padding: '2%',
+                paddingBottom: '3em',
+                boxSizing: 'border-box',
+                display: 'flex',
+                flex: 1,
+                flexDirection: 'column',
+                justifyContent: 'flex-start',
+                alignItems: 'center',
+                position: 'relative',
+                overflow: 'visible'
+            }}>
+                {/* Fixed background */}
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    pointerEvents: 'none',
+                    zIndex: 0
+                }}>
+                    <HalftoneBackground color={bgColorDark} />
+                </div>
 
-            <List style={{ paddingBottom: '' }}>
-                {error && (
-                    <Section>
-                        <Cell>
-                            <div style={{ color: 'var(--tgui--error_color)', fontSize: 14, padding: '10px 0' }}>
-                                {error}
-                            </div>
-                        </Cell>
-                    </Section>
+                {/* Edit Button */}
+                <CircleButton
+                    icon={<Pen size={18} color={bgColor} />}
+                    onClick={() => navigate('/profile/edit')}
+                    position="top-right"
+                    zIndex={2}
+                />
+
+                {/* Inline error banner (profile loaded but with a warning) */}
+                {error && profileData && (
+                    <div style={{
+                        position: 'relative',
+                        zIndex: 1,
+                        width: '90%',
+                        marginTop: '2%',
+                        padding: '0.75em 1em',
+                        backgroundColor: 'rgba(0,0,0,0.25)',
+                        borderRadius: '12px',
+                        color: colors.white,
+                        fontSize: '0.85em',
+                        textAlign: 'center'
+                    }}>
+                        {error}
+                    </div>
                 )}
-                {/* Header & Photo Section */}
-                <Section>
-                    <div style={{ padding: 0, textAlign: 'center', position: 'relative' }}>
-                        {/* Carousel */}
-                        {profileData.photos && profileData.photos.length > 0 && (
-                            <>
-                                <div className="embla" ref={emblaRef} style={{ overflow: 'hidden', width: '100%' }}>
-                                    <div className="embla__container" style={{ display: 'flex' }}>
-                                        {profileData.photos.map((photoUrl, index) => (
-                                            <div key={index} className="embla__slide" style={{ flex: '0 0 100%', minWidth: 0 }}>
-                                                <img
-                                                    src={photoUrl}
-                                                    alt={`Profile ${index + 1}`}
-                                                    style={{
-                                                        width: '100%',
-                                                        aspectRatio: '4/5', // Premium portrait ratio
-                                                        objectFit: 'cover',
-                                                        display: 'block'
-                                                    }}
-                                                />
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
 
-                                {/* Pagination Dots */}
-                                {profileData.photos.length > 1 && (
-                                    <div style={{
-                                        position: 'absolute',
-                                        bottom: 10,
-                                        left: 0,
-                                        right: 0,
-                                        display: 'flex',
-                                        justifyContent: 'center',
-                                        gap: 6,
-                                        zIndex: 10
-                                    }}>
-                                        {profileData.photos.map((_, index) => (
-                                            <div
-                                                key={index}
-                                                style={{
-                                                    width: 8,
-                                                    height: 8,
-                                                    borderRadius: '50%',
-                                                    background: index === currentPhotoIndex ? '#fff' : 'rgba(255, 255, 255, 0.5)',
-                                                    transition: 'background 0.3s ease'
-                                                }}
-                                            />
-                                        ))}
-                                    </div>
-                                )}
-                            </>
-                        )}
+                {/* Carousel Container */}
+                {photos.length > 0 && (
+                    <div style={{
+                        width: '100%',
+                        maxWidth: '70%',
+                        marginTop: '2%',
+                        position: 'relative',
+                        zIndex: 1
+                    }}>
+                        <ProfileCarousel photos={photos} name={name} age={age} />
                     </div>
+                )}
 
-                    <div style={{ padding: '0 20px 20px', textAlign: 'center' }}>
-                        <div style={{ fontSize: '24px', fontWeight: '600', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif', color: 'var(--tgui--text_color, inherit)', lineHeight: '1.4', display: 'flex', gap: 8, justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap' }}>
-                            {profileData.name || 'Name'}, {profileData.age || 'Age'}
-                        </div>
-                    </div>
-                </Section>
-
-                {/* Bio Section */}
-                {profileData.showBio && (
-                    <Section header="About">
-                        <div style={{ 
-                            padding: '12px 20px',
-                            whiteSpace: 'pre-wrap',
-                            wordWrap: 'break-word',
-                            lineHeight: '1.5',
-                            fontSize: '16px',
-                            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-                            color: 'var(--tgui--text_color, inherit)'
+                {/* Fallback when no photos — show name/age as text */}
+                {photos.length === 0 && name && (
+                    <div style={{
+                        position: 'relative',
+                        zIndex: 1,
+                        marginTop: '10%',
+                        color: colors.white,
+                        textAlign: 'center'
+                    }}>
+                        <div style={{
+                            fontSize: '1.6em',
+                            fontWeight: '700',
+                            textShadow: `0 1px 4px ${colors.shadowText}`
                         }}>
-                            {profileData.bio || <span style={{ opacity: 0.5 }}>Tell people about yourself...</span>}
+                            {name}{age != null ? `, ${age}` : ''}
                         </div>
-                    </Section>
+                    </div>
                 )}
 
-                {/* Info Section */}
-                <Section header="Details">
-                    {/* Custom Fields */}
-                    {profileData.customFields.map((field) => (
-                        <Cell
-                            key={field.id}
-                            before={<Avatar size={28} style={{ background: 'var(--tgui--secondary_bg_color)' }}><Info size={16} /></Avatar>}
-                            description={field.title}
-                        >
-                            {field.value}
-                        </Cell>
-                    ))}
-                </Section>
-
-                {/* Interests Section */}
-                {profileData.showInterests && (
-                    <Section header="Interests">
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, padding: '0 20px 20px' }}>
-                            {profileData.interests.map((interest, index) => (
-                                <div
-                                    key={index}
-                                    style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: 6,
-                                        padding: '6px 12px',
-                                        background: 'var(--tgui--secondary_bg_color)',
-                                        borderRadius: 16,
-                                        fontSize: '16px',
-                                        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-                                        color: 'var(--tgui--text_color, inherit)',
-                                        lineHeight: '1.5'
-                                    }}
-                                >
-                                    {interest}
-                                </div>
-                            ))}
-                        </div>
-                    </Section>
+                {/* Info Card */}
+                {showInfoCard && (
+                    <div style={{
+                        width: '100%',
+                        marginTop: '5%',
+                        marginBottom: '5%',
+                        display: 'flex',
+                        justifyContent: 'center',
+                        position: 'relative',
+                        zIndex: 1
+                    }}>
+                        <ProfileInfoCard
+                            bio={showBio ? bio : null}
+                            items={items}
+                            interests={showInterests ? interests : []}
+                            accentColor={bgColor}
+                        />
+                    </div>
                 )}
 
-
-                {initDataRows && (
-                    <Section header="Init Data">
-                        <DisplayData rows={initDataRows} />
-                    </Section>
-                )}
-
-
-            </List>
+            </div>
         </Page>
     );
 }
