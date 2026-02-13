@@ -1,13 +1,13 @@
 import { useCachedFetch } from './useCachedFetch.js';
+import { profileService } from '@/api/services/profileService.js';
 import { useDataCache } from '@/context/DataCacheProvider.jsx';
-import { profileService } from '@/services/api/profileService.js';
-import useAuth from './useAuth.js';
+import useAuth from '@/hooks/useAuth';
 
 /**
  * Custom hook for managing profile data
- * Handles fetching profile with cache support
+ * Handles fetching current user's profile with cache support
  * 
- * @returns {Object} Profile data and controls
+ * @returns {Object} Profile data, loading state, error, and refetch function
  */
 export function useProfile() {
     const { auth } = useAuth();
@@ -24,8 +24,9 @@ export function useProfile() {
         cache: profileCache,
         isCacheValid: isProfileCacheValid,
         updateCache: updateProfileCache,
-        errorMessage: 'Failed to fetch profile',
-        enabled: !!auth?.initData
+        errorMessage: 'Не удалось загрузить профиль',
+        enabled: !!auth?.initData,
+        initialValue: null
     });
 
     return {

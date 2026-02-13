@@ -6,7 +6,9 @@ import { ProfileInfoCard } from '@/components/Profile/ProfileInfoCard.jsx';
 import { HalftoneBackground } from '@/components/HalftoneBackground.jsx';
 import { Info, ArrowLeft } from 'lucide-react';
 import { colors } from '@/constants/colors.js';
-import { profileService } from '@/services/api/profileService.js';
+import { profileService } from '@/api/services/profileService.js';
+import { normalizeApiColor, darkenHex } from '@/utils/colorUtils.js';
+import { LoadingPage } from '@/components/LoadingPage.jsx';
 
 // Rotating palette for interest chips
 const INTEREST_COLORS = [
@@ -80,15 +82,19 @@ export function ViewUserProfile() {
     const showBio = profileData?.showBio !== false;
     const showInterests = profileData?.showInterests !== false;
 
+    // Derive background colors from API background_color field
+    const bgColor = useMemo(() => normalizeApiColor(profileData?.background_color, colors.profilePrimary), [profileData?.background_color]);
+    const bgColorDark = useMemo(() => darkenHex(bgColor, 0.5), [bgColor]);
+
     // Map custom_fields {title, value} → items {title, text, icon}
     const items = useMemo(() => {
         const fields = profileData?.custom_fields || [];
         return fields.map((field) => ({
             title: field.title || '',
             text: field.value || '',
-            icon: <Info size={22} color={colors.profilePrimary} />,
+            icon: <Info size={22} color={bgColor} />,
         }));
-    }, [profileData?.custom_fields]);
+    }, [profileData?.custom_fields, bgColor]);
 
     // Map interests (strings) → {label, color}
     const interests = useMemo(() => {
@@ -101,48 +107,7 @@ export function ViewUserProfile() {
 
     // -- Loading state --
     if (loading) {
-        return (
-            <Page>
-                <div style={{
-                    backgroundColor: colors.profilePrimary,
-                    minHeight: '100vh',
-                    width: '100%',
-                    padding: '2%',
-                    paddingBottom: '3em',
-                    boxSizing: 'border-box',
-                    display: 'flex',
-                    flex: 1,
-                    flexDirection: 'column',
-                    justifyContent: 'flex-start',
-                    alignItems: 'center',
-                    position: 'relative',
-                    overflow: 'visible'
-                }}>
-                    {/* Fixed background */}
-                    <div style={{
-                        position: 'fixed',
-                        top: 0,
-                        left: 0,
-                        width: '100%',
-                        height: '100%',
-                        pointerEvents: 'none',
-                        zIndex: 0
-                    }}>
-                        <HalftoneBackground color={colors.profilePrimaryDark} />
-                    </div>
-                    <div style={{
-                        position: 'relative',
-                        zIndex: 1,
-                        color: colors.white,
-                        fontSize: '1.1em',
-                        fontWeight: '500',
-                        opacity: 0.85
-                    }}>
-                        Loading profile...
-                    </div>
-                </div>
-            </Page>
-        );
+        return <LoadingPage text="Загрузка профиля..." />;
     }
 
     // -- Error state (no profile data at all) --
@@ -150,7 +115,7 @@ export function ViewUserProfile() {
         return (
             <Page>
                 <div style={{
-                    backgroundColor: colors.profilePrimary,
+                    backgroundColor: bgColor,
                     minHeight: '100vh',
                     width: '100%',
                     padding: '2%',
@@ -159,12 +124,11 @@ export function ViewUserProfile() {
                     display: 'flex',
                     flex: 1,
                     flexDirection: 'column',
-                    justifyContent: 'flex-start',
+                    justifyContent: 'center',
                     alignItems: 'center',
                     position: 'relative',
                     overflow: 'visible'
                 }}>
-                    {/* Fixed background */}
                     <div style={{
                         position: 'fixed',
                         top: 0,
@@ -174,7 +138,7 @@ export function ViewUserProfile() {
                         pointerEvents: 'none',
                         zIndex: 0
                     }}>
-                        <HalftoneBackground color={colors.profilePrimaryDark} />
+                        <HalftoneBackground color={bgColorDark} />
                     </div>
                     <div style={{
                         position: 'relative',
@@ -200,7 +164,7 @@ export function ViewUserProfile() {
     return (
         <Page>
             <div style={{
-                backgroundColor: colors.profilePrimary,
+                backgroundColor: bgColor,
                 minHeight: '100vh',
                 width: '100%',
                 padding: '2%',
@@ -215,7 +179,17 @@ export function ViewUserProfile() {
                 overflow: 'visible'
             }}>
                 {/* Fixed background */}
-                <HalftoneBackground color={colors.profilePrimaryDark} />
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    pointerEvents: 'none',
+                    zIndex: 0
+                }}>
+                    <HalftoneBackground color={bgColorDark} />
+                </div>
 
                 {/* Back Button */}
                 <button
@@ -237,7 +211,7 @@ export function ViewUserProfile() {
                         boxShadow: '0 2px 6px rgba(0, 0, 0, 0.2)'
                     }}
                 >
-                    <ArrowLeft size={18} color={colors.profilePrimary} />
+                    <ArrowLeft size={18} color={bgColor} />
                 </button>
 
                 {/* Inline error banner (profile loaded but with a warning) */}
@@ -305,6 +279,7 @@ export function ViewUserProfile() {
                             bio={showBio ? bio : null}
                             items={items}
                             interests={showInterests ? interests : []}
+                            accentColor={bgColor}
                         />
                     </div>
                 )}

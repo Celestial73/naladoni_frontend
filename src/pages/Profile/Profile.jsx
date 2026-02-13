@@ -5,7 +5,6 @@ import { ProfileCarousel } from '@/components/Profile/ProfileCarousel.jsx';
 import { ProfileInfoCard } from '@/components/Profile/ProfileInfoCard.jsx';
 import { HalftoneBackground } from '@/components/HalftoneBackground.jsx';
 import { CircleButton } from '@/components/CircleButton/CircleButton.jsx';
-import { ErrorMessage } from '@/components/ErrorMessage.jsx';
 import { Info, Pen } from 'lucide-react';
 import { colors } from '@/constants/colors.js';
 import useAuth from '@/hooks/useAuth';
@@ -81,7 +80,17 @@ export function Profile() {
                 overflow: 'visible'
             }}>
                 {/* Fixed background */}
-                <HalftoneBackground color={bgColorDark} />
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    pointerEvents: 'none',
+                    zIndex: 0
+                }}>
+                    <HalftoneBackground color={bgColorDark} />
+                </div>
                     <div style={{
                         position: 'relative',
                         zIndex: 1,
@@ -121,7 +130,17 @@ export function Profile() {
                 overflow: 'visible'
             }}>
                 {/* Fixed background */}
-                <HalftoneBackground color={bgColorDark} />
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    pointerEvents: 'none',
+                    zIndex: 0
+                }}>
+                    <HalftoneBackground color={bgColorDark} />
+                </div>
 
                 {/* Edit Button */}
                 <CircleButton

@@ -3,7 +3,7 @@
  * Centralized API calls for authentication
  */
 
-import axiosInstance from '../../api/axios.js';
+import axiosInstance from '../axios.js';
 import { baseServiceConfig } from './baseService.js';
 
 const SERVICE_NAME = 'authService';

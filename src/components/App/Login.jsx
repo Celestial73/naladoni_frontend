@@ -3,7 +3,7 @@ import { useState, useEffect, useMemo } from "react";
 import { initData, useSignal, useLaunchParams } from "@tma.js/sdk-react";
 import { Placeholder, AppRoot, List } from '@telegram-apps/telegram-ui';
 import useAuth from '@/hooks/useAuth';
-import { authService } from '@/services/api/authService.js';
+import { authService } from '@/api/services/authService.js';
 import { DisplayData } from '@/components/DisplayData/DisplayData.jsx';
 import { Page } from '@/components/Layout/Page.jsx';
 

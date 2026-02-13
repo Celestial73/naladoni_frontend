@@ -3,9 +3,9 @@
  * Centralized export point for all API services
  * 
  * Usage:
- *   import { authService, eventsService, profileService } from '@/services/api';
+ *   import { authService, eventsService, profileService } from '@/api/services';
  *   // or
- *   import * as apiServices from '@/services/api';
+ *   import * as apiServices from '@/api/services';
  */
 
 export { authService } from './authService.js';

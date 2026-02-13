@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { eventsService } from '@/services/api/eventsService.js';
-import { eventActionsService } from '@/services/api/eventActionsService.js';
+import { eventsService } from '@/api/services/eventsService.js';
+import { eventActionsService } from '@/api/services/eventActionsService.js';
 import { useDataCache } from '@/context/DataCacheProvider.jsx';
 import { useCachedFetch } from './useCachedFetch.js';
 

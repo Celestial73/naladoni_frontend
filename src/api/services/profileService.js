@@ -3,7 +3,7 @@
  * Centralized API calls for user profiles
  */
 
-import { axiosPrivate } from '../../api/axios.js';
+import { axiosPrivate } from '../axios.js';
 import { baseServiceConfig } from './baseService.js';
 
 const SERVICE_NAME = 'profileService';

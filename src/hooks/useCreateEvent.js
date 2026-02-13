@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useCachedFetch } from './useCachedFetch.js';
-import { eventsService } from '@/services/api/eventsService.js';
+import { eventsService } from '@/api/services/eventsService.js';
 
 /**
  * Parse ISO datetime string to date format for form input

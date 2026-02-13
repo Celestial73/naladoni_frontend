@@ -3,7 +3,7 @@
  * Centralized API calls for feed functionality
  */
 
-import { axiosPrivate } from '../../api/axios.js';
+import { axiosPrivate } from '../axios.js';
 import { baseServiceConfig } from './baseService.js';
 import { formatDateToDDMMYYYY } from '../../utils/dateFormatter.js';
 

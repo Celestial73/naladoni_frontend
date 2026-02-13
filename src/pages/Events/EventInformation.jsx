@@ -25,7 +25,8 @@ export function EventInformation({
             photos: attendee.photos || (attendee.photo_url ? [attendee.photo_url] : []) || (attendee.image ? [attendee.image] : []),
             bio: attendee.bio || '',
             interests: attendee.interests || [],
-            custom_fields: attendee.customFields || attendee.custom_fields || []
+            custom_fields: attendee.customFields || attendee.custom_fields || [],
+            background_color: attendee.background_color,
         };
         
         // Use attendee ID for the route, fallback to a generated ID if not available
@@ -148,27 +149,25 @@ export function EventInformation({
                                         </div>
                                     ) : (
                                         <div style={{ position: 'relative', display: 'inline-block', width: '100%' }}>
-                                            <div style={{
-                                                display: '-webkit-box',
-                                                WebkitLineClamp: 3,
-                                                WebkitBoxOrient: 'vertical',
-                                                overflow: 'hidden',
-                                                wordBreak: 'break-word'
-                                            }}>
-                                                {event.description}
-                                            </div>
-                                            <span
-                                                onClick={() => setIsDescriptionExpanded(true)}
-                                                style={{
-                                                    color: colors.feedPrimary,
-                                                    cursor: 'pointer',
-                                                    fontWeight: 500,
-                                                    whiteSpace: 'nowrap',
-                                                    marginLeft: '0.3em'
-                                                }}
-                                            >
-                                                больше
-                                            </span>
+                                            {event.description.length > 60 ? (
+                                                <>
+                                                    {event.description.substring(0, 60)}
+                                                    <span
+                                                        onClick={() => setIsDescriptionExpanded(true)}
+                                                        style={{
+                                                            color: colors.feedPrimary,
+                                                            cursor: 'pointer',
+                                                            fontWeight: 500,
+                                                            whiteSpace: 'nowrap',
+                                                            marginLeft: '0.3em'
+                                                        }}
+                                                    >
+                                                        больше
+                                                    </span>
+                                                </>
+                                            ) : (
+                                                event.description
+                                            )}
                                         </div>
                                     )}
                                 </div>

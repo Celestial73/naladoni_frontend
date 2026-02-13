@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useCachedFetch } from './useCachedFetch.js';
 import { useDataCache } from '@/context/DataCacheProvider.jsx';
-import { eventsService } from '@/services/api/eventsService.js';
-import { eventActionsService } from '@/services/api/eventActionsService.js';
+import { eventsService } from '@/api/services/eventsService.js';
+import { eventActionsService } from '@/api/services/eventActionsService.js';
 import { formatDateToDDMMYYYY } from '@/utils/dateFormatter.js';
 
 /**

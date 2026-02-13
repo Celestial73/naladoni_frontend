@@ -9,7 +9,7 @@ import { SectionTitle } from './SectionTitle.jsx';
 import { ErrorMessage } from '@/components/ErrorMessage.jsx';
 import { ProfileDrawer } from '../Profile/ProfileDrawer.jsx';
 import { colors } from '@/constants/colors.js';
-import { eventsService } from '@/services/api/eventsService.js';
+import { eventsService } from '@/api/services/eventsService.js';
 import { useEventDetail } from '@/hooks/useEventDetail.js';
 import { useDataCache } from '@/context/DataCacheProvider.jsx';
 
@@ -72,18 +72,6 @@ export function EventDetail() {
             await handleDeleteParticipantFromHook(participantId);
         } catch (err) {
             // Error is already handled by the hook
-        }
-    };
-
-    const handleDeleteParticipant = async (participantId) => {
-        if (!event?.id) return;
-        
-        try {
-            await eventsService.deleteParticipant(event.id, participantId);
-            // Refresh event data to reflect changes
-            await refetchEvent();
-        } catch (err) {
-            // Error handling is done by the hook
         }
     };
 

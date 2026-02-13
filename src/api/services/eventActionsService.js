@@ -3,7 +3,7 @@
  * Centralized API calls for event actions (likes, accepts, rejects)
  */
 
-import { axiosPrivate } from '../../api/axios.js';
+import { axiosPrivate } from '../axios.js';
 import { baseServiceConfig } from './baseService.js';
 
 const SERVICE_NAME = 'eventActionsService';

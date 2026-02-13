@@ -8,7 +8,7 @@ import { CircleButton } from '@/components/CircleButton/CircleButton.jsx';
 import { EditFieldCard } from '@/components/Profile/ProfileEdit/EditFieldCard.jsx';
 import { TownPicker } from '@/components/TownPicker/TownPicker.jsx';
 import { colors } from '@/constants/colors.js';
-import { eventsService } from '@/services/api/eventsService.js';
+import { eventsService } from '@/api/services/eventsService.js';
 import { useCreateEvent } from '@/hooks/useCreateEvent.js';
 import { RUSSIAN_CITIES } from '@/data/russianCities.js';
 
@@ -110,9 +110,6 @@ export function CreateEvent() {
     setFormData(prev => ({ ...prev, [field]: value }));
     setError(null);
   };
-
-  // Use fetchError if available, otherwise use local error
-  const displayError = fetchError || error;
 
   // --- Picture handlers ---
   const handlePictureClick = () => {

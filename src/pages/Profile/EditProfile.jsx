@@ -1,16 +1,16 @@
-import { useState, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Page } from '@/components/Layout/Page.jsx';
 import { HalftoneBackground } from '@/components/HalftoneBackground.jsx';
 import { CircleButton } from '@/components/CircleButton/CircleButton.jsx';
-import { ErrorMessage } from '@/components/ErrorMessage.jsx';
 import { colors } from '@/constants/colors.js';
 import { EditFieldCard } from '@/components/Profile/ProfileEdit/EditFieldCard.jsx';
 import { PhotoEditRow } from '@/components/Profile/ProfileEdit/PhotoEditRow.jsx';
 import { EditInfoCard } from '@/components/Profile/ProfileEdit/EditInfoCard.jsx';
 import { SectionTitle } from '@/pages/Events/SectionTitle.jsx';
-import { useEditProfile } from '@/hooks/useEditProfile.js';
-import { profileService } from '@/services/api/profileService.js';
+import useAuth from '@/hooks/useAuth';
+import { useProfile } from '@/hooks/useProfile.js';
+import { profileService } from '@/api/services/profileService.js';
 import { Save, ArrowLeft, Palette } from 'lucide-react';
 import { normalizeApiColor, darkenHex } from '@/utils/colorUtils.js';
 import { useDataCache } from '@/context/DataCacheProvider.jsx';
@@ -28,14 +28,73 @@ function getInterestColor(index) {
 
 export function EditProfile() {
     const navigate = useNavigate();
+    const { auth } = useAuth();
+    const { profileData, loading: fetching, error: fetchError, refetch } = useProfile();
     const { updateProfileCache } = useDataCache();
     const fileInputRef = useRef(null);
 
-    const { formData, setFormData, fetching, error, refetch } = useEditProfile();
-    
     const [saving, setSaving] = useState(false);
     const [uploadingPhotos, setUploadingPhotos] = useState(false);
     const [deletingPhotos, setDeletingPhotos] = useState(false);
+    const [error, setError] = useState(null);
+    const [formDataInitialized, setFormDataInitialized] = useState(false);
+
+    const [formData, setFormData] = useState(() => {
+        const initialData = {
+            name: auth.user?.name || '',
+            age: '',
+            photos: [],
+            bio: '',
+            gender: '',
+            customFields: [],
+            interests: [],
+            backgroundColor: 'd92326',
+        };
+        
+        console.log('[EditProfile] Initial state (from auth):', {
+            authUser: auth.user,
+            initialFormData: initialData
+        });
+        
+        return initialData;
+    });
+
+    // Transform profile data to form data when profile is loaded
+    useEffect(() => {
+        // If profileData is explicitly null/undefined after loading, user has no profile yet - allow editing
+        if (profileData !== undefined) {
+            if (profileData) {
+                console.log('[EditProfile] Loaded profile data:', profileData);
+                
+                const formDataUpdate = {
+                    name: profileData.display_name || profileData.name || auth.user?.name || '',
+                    age: profileData.age?.toString() || '',
+                    photos: profileData.photos || [],
+                    bio: profileData.bio || '',
+                    gender: profileData.gender || '',
+                    customFields: (profileData.custom_fields || []).map((field, index) => ({
+                        id: field.id || `field-${index}-${Date.now()}`,
+                        title: field.title || '',
+                        value: field.value || '',
+                    })),
+                    interests: profileData.interests || [],
+                    backgroundColor: profileData.background_color || 'd92326',
+                };
+                
+                console.log('[EditProfile] Processed form data:', formDataUpdate);
+                setFormData(formDataUpdate);
+            }
+            // Mark as initialized whether profileData exists or not (null means no profile yet, which is valid)
+            setFormDataInitialized(true);
+        }
+    }, [profileData, auth.user?.name]);
+
+    // Set error from fetch if present
+    useEffect(() => {
+        if (fetchError) {
+            setError(fetchError);
+        }
+    }, [fetchError]);
 
     // --- Generic field change ---
     const handleChange = (field, value) => {
@@ -209,14 +268,15 @@ export function EditProfile() {
 
     const isLoading = saving || uploadingPhotos || deletingPhotos;
 
+    // --- Loading state ---
+    // Show loading screen if fetching or if formData hasn't been initialized from profileData yet
+    if (fetching || !formDataInitialized) {
+        return <LoadingPage text="грузим профиль" />;
+    }
+
     // Derive background colors from form state
     const bgColor = normalizeApiColor(formData.backgroundColor, colors.profilePrimary);
     const bgColorDark = darkenHex(bgColor, 0.5);
-
-    // --- Loading state ---
-    if (fetching) {
-        return <LoadingPage text="Загрузка профиля..." />;
-    }
 
     return (
         <Page>
@@ -236,7 +296,17 @@ export function EditProfile() {
                 overflow: 'visible'
             }}>
                 {/* Fixed background */}
-                <HalftoneBackground color={bgColorDark} />
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    pointerEvents: 'none',
+                    zIndex: 0
+                }}>
+                    <HalftoneBackground color={bgColorDark} />
+                </div>
 
                 {/* Back button */}
                 <CircleButton
@@ -354,7 +424,24 @@ export function EditProfile() {
                 </div>
 
                 {/* Error message */}
-                <ErrorMessage message={error} />
+                {error && (
+                    <div style={{
+                        width: '90%',
+                        marginTop: '1em',
+                        padding: '0.75em 1em',
+                        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                        borderRadius: '12px',
+                        color: '#c0392b',
+                        fontSize: '0.9em',
+                        fontWeight: '500',
+                        textAlign: 'center',
+                        position: 'relative',
+                        zIndex: 1,
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+                    }}>
+                        {error}
+                    </div>
+                )}
 
                 {/* Name and age inputs */}
                 <div style={{
