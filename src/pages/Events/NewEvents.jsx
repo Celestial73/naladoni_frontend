@@ -6,6 +6,7 @@ import { Page } from '@/components/Layout/Page.jsx';
 import { HalftoneBackground } from '@/components/HalftoneBackground.jsx';
 import { EventDrawer } from './EventDrawer.jsx';
 import { ProfileDrawer } from '../Profile/ProfileDrawer.jsx';
+import { CircleButton } from '@/components/CircleButton/CircleButton.jsx';
 import { colors } from '@/constants/colors.js';
 import { eventsService } from '@/services/api/eventsService.js';
 import { eventActionsService } from '@/services/api/eventActionsService.js';
@@ -27,6 +28,13 @@ export function NewEvents() {
     const [errorAccepted, setErrorAccepted] = useState(null);
     const [selectedEvent, setSelectedEvent] = useState(null);
     const [selectedAttendee, setSelectedAttendee] = useState(null);
+
+    // Sync state with cache updates (e.g., when pending counts change from other pages)
+    useEffect(() => {
+        if (eventsCache.pendingRequestCounts) {
+            setPendingRequestCounts(eventsCache.pendingRequestCounts);
+        }
+    }, [eventsCache.pendingRequestCounts]);
 
     // Fetch my events and pending request counts
     useEffect(() => {
@@ -331,60 +339,25 @@ export function NewEvents() {
                 </div>
 
                 {/* Create Event Button - Fixed top right */}
-                <button
+                <CircleButton
+                    icon={<Plus size={24} color={colors.eventPrimary} />}
                     onClick={() => navigate('/events/create')}
-                    style={{
-                        position: 'fixed',
-                        top: '1em',
-                        right: '1em',
-                        zIndex: 10,
-                        width: '50px',
-                        height: '50px',
-                        borderRadius: '50%',
-                        backgroundColor: colors.white,
-                        border: 'none',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        cursor: 'pointer',
-                        boxShadow: '0 4px 8px rgba(0, 0, 0, 0.25)',
-                        transition: 'transform 0.1s'
-                    }}
-                    onMouseDown={(e) => (e.currentTarget.style.transform = 'scale(0.92)')}
-                    onMouseUp={(e) => (e.currentTarget.style.transform = 'scale(1)')}
-                    onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
-                >
-                    <Plus size={24} color={colors.eventPrimary} />
-                </button>
+                    position="top-right"
+                    size={50}
+                    top="1em"
+                    right="1em"
+                />
 
-                {/* Refresh Button - Fixed top left */}
-                <button
+                {/* Refresh Button - Fixed top right */}
+                <CircleButton
+                    icon={<RefreshCw size={22} color={colors.eventPrimary} />}
                     onClick={handleRefresh}
                     disabled={loading || loadingAccepted}
-                    style={{
-                        position: 'fixed',
-                        top: '1em',
-                        left: '1em',
-                        zIndex: 10,
-                        width: '50px',
-                        height: '50px',
-                        borderRadius: '50%',
-                        backgroundColor: colors.white,
-                        border: 'none',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        cursor: (loading || loadingAccepted) ? 'not-allowed' : 'pointer',
-                        boxShadow: '0 4px 8px rgba(0, 0, 0, 0.25)',
-                        opacity: (loading || loadingAccepted) ? 0.6 : 1,
-                        transition: 'transform 0.1s'
-                    }}
-                    onMouseDown={(e) => !loading && !loadingAccepted && (e.currentTarget.style.transform = 'scale(0.92)')}
-                    onMouseUp={(e) => (e.currentTarget.style.transform = 'scale(1)')}
-                    onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
-                >
-                    <RefreshCw size={22} color={colors.eventPrimary} />
-                </button>
+                    position="top-right"
+                    size={50}
+                    top="1em"
+                    right="5.5em"
+                />
 
                 {/* Error messages */}
                 {error && (
@@ -428,23 +401,21 @@ export function NewEvents() {
                 {/* My Events Section */}
                 <div style={{
                     width: '100%',
-                    marginTop: error || errorAccepted ? '1em' : '4em',
+                    marginTop: error || errorAccepted ? '1em' : '3em',
                     position: 'relative',
                     zIndex: 1
                 }}>
                     <div style={{
-                        width: '90%',
-                        margin: '0 auto 1em',
-                        padding: '0.8em 1em',
-                        backgroundColor: colors.white,
-                        borderRadius: '20px 0 20px 0',
-                        boxShadow: '8px 10px 0px rgba(0, 0, 0, 0.25)',
-                        fontSize: '1.3em',
+                        marginLeft: '5%',
+                        marginBottom: '0.2em',
+                        position: 'relative',
+                        zIndex: 1,
+                        fontSize: '2em',
                         fontWeight: '900',
                         fontFamily: "'Uni Sans', sans-serif",
-                        fontStyle: 'italic',
-                        color: colors.eventPrimary,
-                        textAlign: 'center'
+                        color: colors.white,
+                        fontStyle: "italic",
+                        textShadow: '3px 4px 0px rgba(0, 0, 0, 0.5)'
                     }}>
                         МОИ СОБЫТИЯ
                     </div>
@@ -670,18 +641,17 @@ export function NewEvents() {
                     zIndex: 1
                 }}>
                     <div style={{
-                        width: '90%',
-                        margin: '0 auto 1em',
-                        padding: '0.8em 1em',
-                        backgroundColor: colors.white,
-                        borderRadius: '20px 0 20px 0',
-                        boxShadow: '8px 10px 0px rgba(0, 0, 0, 0.25)',
-                        fontSize: '1.3em',
+                        marginRight: '5%',
+                        marginBottom: '0.2em',
+                        position: 'relative',
+                        textAlign: 'right',
+                        zIndex: 1,
+                        fontSize: '2em',
                         fontWeight: '900',
                         fontFamily: "'Uni Sans', sans-serif",
-                        fontStyle: 'italic',
-                        color: colors.eventPrimary,
-                        textAlign: 'center'
+                        color: colors.white,
+                        fontStyle: "italic",
+                        textShadow: '3px 4px 0px rgba(0, 0, 0, 0.5)'
                     }}>
                         ПРИНЯТЫЕ ЗАПРОСЫ
                     </div>
@@ -722,7 +692,7 @@ export function NewEvents() {
                                     initial={{ opacity: 0, y: 10 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ duration: 0.2, delay: index * 0.05 }}
-                                    onClick={() => setSelectedEvent(event)}
+                                    onClick={() => navigate(`/events/${event.id}/detail`)}
                                     style={{
                                         padding: '1em 1.2em',
                                         borderBottom: index < acceptedRequests.length - 1 ? `1px solid ${colors.borderGrey}` : 'none',
@@ -908,4 +878,3 @@ export function NewEvents() {
         </Page>
     );
 }
-

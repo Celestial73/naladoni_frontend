@@ -5,8 +5,10 @@ import { useState, useEffect } from 'react';
 import { EventInformation } from './EventInformation.jsx';
 import { eventActionsService } from '@/services/api/eventActionsService.js';
 import { eventsService } from '@/services/api/eventsService.js';
+import { useDataCache } from '@/context/DataCacheProvider.jsx';
 
 export function EventDrawer({ event, onClose, onLeave, onDelete, onEdit, onDeleteParticipant, isOwner = false, onAttendeeClick, onEventUpdate }) {
+    const { eventsCache, updateEventsCache } = useDataCache();
     const [pendingLikes, setPendingLikes] = useState([]);
     const [loadingPendingLikes, setLoadingPendingLikes] = useState(false);
     const [errorPendingLikes, setErrorPendingLikes] = useState(null);
@@ -55,7 +57,20 @@ export function EventDrawer({ event, onClose, onLeave, onDelete, onEdit, onDelet
             await eventActionsService.acceptLike(eventActionId);
             
             // Remove from pending list
-            setPendingLikes((prev) => prev.filter((like) => like.id !== eventActionId));
+            const updatedPending = pendingLikes.filter((like) => like.id !== eventActionId);
+            setPendingLikes(updatedPending);
+            
+            // Update cache: decrease pending request count for this event
+            if (event?.id) {
+                const currentCounts = eventsCache.pendingRequestCounts || {};
+                const newCount = Math.max(0, (currentCounts[event.id] || 0) - 1);
+                updateEventsCache({
+                    pendingRequestCounts: {
+                        ...currentCounts,
+                        [event.id]: newCount,
+                    },
+                });
+            }
             
             // Refresh event data to show new participant
             if (event?.id) {
@@ -81,7 +96,20 @@ export function EventDrawer({ event, onClose, onLeave, onDelete, onEdit, onDelet
             await eventActionsService.rejectLike(eventActionId);
             
             // Remove from pending list
-            setPendingLikes((prev) => prev.filter((like) => like.id !== eventActionId));
+            const updatedPending = pendingLikes.filter((like) => like.id !== eventActionId);
+            setPendingLikes(updatedPending);
+            
+            // Update cache: decrease pending request count for this event
+            if (event?.id) {
+                const currentCounts = eventsCache.pendingRequestCounts || {};
+                const newCount = Math.max(0, (currentCounts[event.id] || 0) - 1);
+                updateEventsCache({
+                    pendingRequestCounts: {
+                        ...currentCounts,
+                        [event.id]: newCount,
+                    },
+                });
+            }
         } catch (err) {
             setErrorPendingLikes(err.message || 'Failed to reject request');
         } finally {

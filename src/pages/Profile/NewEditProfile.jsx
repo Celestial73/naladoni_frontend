@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Page } from '@/components/Layout/Page.jsx';
 import { HalftoneBackground } from '@/components/HalftoneBackground.jsx';
+import { CircleButton } from '@/components/CircleButton/CircleButton.jsx';
 import { colors } from '@/constants/colors.js';
 import { EditFieldCard } from '@/components/Profile/ProfileEdit/EditFieldCard.jsx';
 import { PhotoEditRow } from '@/components/Profile/ProfileEdit/PhotoEditRow.jsx';
@@ -305,54 +306,20 @@ export function NewEditProfile() {
                 </div>
 
                 {/* Back button */}
-                <button
+                <CircleButton
+                    icon={<ArrowLeft size={20} color={bgColor} />}
                     onClick={() => navigate('/profile')}
                     disabled={isLoading}
-                    style={{
-                        position: 'fixed',
-                        top: '1em',
-                        left: '1em',
-                        zIndex: 10,
-                        width: '42px',
-                        height: '42px',
-                        borderRadius: '50%',
-                        backgroundColor: colors.white,
-                        border: 'none',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        cursor: isLoading ? 'not-allowed' : 'pointer',
-                        boxShadow: '0 2px 6px rgba(0, 0, 0, 0.2)',
-                        opacity: isLoading ? 0.6 : 1
-                    }}
-                >
-                    <ArrowLeft size={20} color={bgColor} />
-                </button>
+                    position="top-left"
+                />
 
                 {/* Save button (floating) */}
-                <button
+                <CircleButton
+                    icon={<Save size={18} color={bgColor} />}
                     onClick={handleSubmit}
                     disabled={isLoading}
-                    style={{
-                        position: 'fixed',
-                        top: '1em',
-                        right: '1em',
-                        zIndex: 10,
-                        width: '42px',
-                        height: '42px',
-                        borderRadius: '50%',
-                        backgroundColor: colors.white,
-                        border: 'none',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        cursor: isLoading ? 'not-allowed' : 'pointer',
-                        boxShadow: '0 2px 6px rgba(0, 0, 0, 0.2)',
-                        opacity: isLoading ? 0.6 : 1
-                    }}
-                >
-                    <Save size={18} color={bgColor} />
-                </button>
+                    position="top-right"
+                />
 
                 {/* Hidden file input for photo upload */}
                 <input

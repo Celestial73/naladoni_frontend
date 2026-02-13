@@ -10,10 +10,12 @@ import { colors } from '@/constants/colors.js';
 import { eventsService } from '@/services/api/eventsService.js';
 import { eventActionsService } from '@/services/api/eventActionsService.js';
 import { formatDateToDDMMYYYY } from '@/utils/dateFormatter.js';
+import { useDataCache } from '@/context/DataCacheProvider.jsx';
 
 export function EventDetail() {
     const navigate = useNavigate();
     const { id } = useParams();
+    const { eventsCache, updateEventsCache } = useDataCache();
     
     const [event, setEvent] = useState(null);
     const [pendingRequests, setPendingRequests] = useState([]);
@@ -57,10 +59,19 @@ export function EventDetail() {
                     
                     setEvent(transformedEvent);
                     
-                    // Check if current user is the owner
-                    // This would need to be checked against the current user's ID
-                    // For now, we'll fetch pending requests to determine ownership
-                    setIsOwner(true); // Will be updated when we check ownership
+                    // Check if current user is the owner by checking if event is in myEvents cache
+                    // If cache is available and event is found, we know user is owner
+                    // If cache is empty or event not found, we'll verify via pending requests fetch
+                    const eventId = transformedEvent.id;
+                    const myEvents = eventsCache.myEvents || [];
+                    if (myEvents.length > 0) {
+                        // Cache is loaded, check if event is in it
+                        const isEventOwner = myEvents.some(e => e.id === eventId);
+                        setIsOwner(isEventOwner);
+                    } else {
+                        // Cache not loaded yet, start with false (will be verified via pending requests)
+                        setIsOwner(false);
+                    }
                 }
             } catch (err) {
                 if (err.name !== 'AbortError' && err.name !== 'CanceledError') {
@@ -80,11 +91,20 @@ export function EventDetail() {
         return () => {
             abortController.abort();
         };
-    }, [id]);
+    }, [id, eventsCache.myEvents]);
 
-    // Fetch pending requests if owner
+    // Fetch pending requests if owner (or to verify ownership if cache wasn't available)
     useEffect(() => {
-        if (!isOwner || !event?.id || loading) {
+        if (!event?.id || loading) {
+            return;
+        }
+
+        // Only fetch if we think we're the owner, or if cache wasn't available to verify
+        const myEvents = eventsCache.myEvents || [];
+        const cacheWasAvailable = myEvents.length > 0;
+        const shouldFetch = isOwner || !cacheWasAvailable;
+
+        if (!shouldFetch) {
             return;
         }
 
@@ -98,15 +118,22 @@ export function EventDetail() {
                 
                 if (!abortController.signal.aborted) {
                     setPendingRequests(requests || []);
+                    // If we successfully fetched, we're definitely the owner
+                    if (!isOwner) {
+                        setIsOwner(true);
+                    }
                 }
             } catch (err) {
                 if (err.name !== 'AbortError' && err.name !== 'CanceledError') {
                     if (!abortController.signal.aborted) {
-                        // If we get 403 or similar, user is not owner
+                        // If we get 403 or similar, user is not owner - update state
                         if (err.response?.status === 403 || err.response?.status === 404) {
                             setIsOwner(false);
                         } else {
-                            setErrorRequests(err.message || 'Не удалось загрузить запросы');
+                            // Only show error if we already knew we were owner
+                            if (isOwner) {
+                                setErrorRequests(err.message || 'Не удалось загрузить запросы');
+                            }
                         }
                     }
                 }
@@ -122,7 +149,7 @@ export function EventDetail() {
         return () => {
             abortController.abort();
         };
-    }, [isOwner, event?.id, loading]);
+    }, [isOwner, event?.id, loading, eventsCache.myEvents]);
 
     const handleAcceptRequest = async (eventActionId) => {
         try {
@@ -131,7 +158,20 @@ export function EventDetail() {
             await eventActionsService.acceptLike(eventActionId);
             
             // Remove from pending list
-            setPendingRequests((prev) => prev.filter((req) => req.id !== eventActionId));
+            const updatedPending = pendingRequests.filter((req) => req.id !== eventActionId);
+            setPendingRequests(updatedPending);
+            
+            // Update cache: decrease pending request count for this event
+            if (event?.id) {
+                const currentCounts = eventsCache.pendingRequestCounts || {};
+                const newCount = Math.max(0, (currentCounts[event.id] || 0) - 1);
+                updateEventsCache({
+                    pendingRequestCounts: {
+                        ...currentCounts,
+                        [event.id]: newCount,
+                    },
+                });
+            }
             
             // Refresh event data to show new participant
             if (event?.id) {
@@ -168,7 +208,20 @@ export function EventDetail() {
             await eventActionsService.rejectLike(eventActionId);
             
             // Remove from pending list
-            setPendingRequests((prev) => prev.filter((req) => req.id !== eventActionId));
+            const updatedPending = pendingRequests.filter((req) => req.id !== eventActionId);
+            setPendingRequests(updatedPending);
+            
+            // Update cache: decrease pending request count for this event
+            if (event?.id) {
+                const currentCounts = eventsCache.pendingRequestCounts || {};
+                const newCount = Math.max(0, (currentCounts[event.id] || 0) - 1);
+                updateEventsCache({
+                    pendingRequestCounts: {
+                        ...currentCounts,
+                        [event.id]: newCount,
+                    },
+                });
+            }
         } catch (err) {
             setErrorRequests(err.message || 'Не удалось отклонить запрос');
         } finally {
@@ -206,6 +259,26 @@ export function EventDetail() {
             navigate('/events');
         } catch (err) {
             setError(err.message || 'Не удалось удалить событие');
+        }
+    };
+
+    const handleLeaveEvent = async () => {
+        if (!event?.id) return;
+        
+        if (!window.confirm('Вы уверены, что хотите покинуть это событие?')) {
+            return;
+        }
+        
+        try {
+            await eventsService.leaveEvent(event.id);
+            // Update cache
+            const updatedAccepted = (eventsCache.acceptedRequests || []).filter((e) => e.id !== event.id);
+            updateEventsCache({
+                acceptedRequests: updatedAccepted,
+            });
+            navigate('/events');
+        } catch (err) {
+            setError(err.message || 'Не удалось покинуть событие');
         }
     };
 
@@ -530,6 +603,40 @@ export function EventDetail() {
                         />
                     </div>
                 </div>
+
+                {/* Leave Event Button - Only for non-owners */}
+                {!isOwner && (
+                    <div style={{
+                        width: '90%',
+                        marginTop: '2em',
+                        position: 'relative',
+                        zIndex: 1
+                    }}>
+                        <button
+                            onClick={handleLeaveEvent}
+                            style={{
+                                width: '100%',
+                                padding: '1em',
+                                backgroundColor: '#c0392b',
+                                color: colors.white,
+                                border: 'none',
+                                borderRadius: '20px 0 20px 0',
+                                fontSize: '1.1em',
+                                fontWeight: '700',
+                                fontFamily: "'Uni Sans', sans-serif",
+                                fontStyle: 'italic',
+                                cursor: 'pointer',
+                                boxShadow: '8px 10px 0px rgba(0, 0, 0, 0.25)',
+                                transition: 'transform 0.1s'
+                            }}
+                            onMouseDown={(e) => (e.currentTarget.style.transform = 'scale(0.95)')}
+                            onMouseUp={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+                            onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+                        >
+                            ПОКИНУТЬ СОБЫТИЕ
+                        </button>
+                    </div>
+                )}
 
                 {/* Pending Requests Section - Only for owners */}
                 {isOwner && (

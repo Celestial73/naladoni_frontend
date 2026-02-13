@@ -4,6 +4,7 @@ import { Page } from '@/components/Layout/Page.jsx';
 import { ProfileCarousel } from '@/components/Profile/ProfileCarousel.jsx';
 import { ProfileInfoCard } from '@/components/Profile/ProfileInfoCard.jsx';
 import { HalftoneBackground } from '@/components/HalftoneBackground.jsx';
+import { CircleButton } from '@/components/CircleButton/CircleButton.jsx';
 import { Info, Pen } from 'lucide-react';
 import { colors } from '@/constants/colors.js';
 import useAuth from '@/hooks/useAuth';
@@ -195,27 +196,12 @@ export function NewProfile() {
                 </div>
 
                 {/* Edit Button */}
-                <button
+                <CircleButton
+                    icon={<Pen size={18} color={bgColor} />}
                     onClick={() => navigate('/profile/edit')}
-                    style={{
-                        position: 'fixed',
-                        top: '1em',
-                        right: '1em',
-                        zIndex: 2,
-                        width: '42px',
-                        height: '42px',
-                        borderRadius: '50%',
-                        backgroundColor: colors.white,
-                        border: 'none',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        cursor: 'pointer',
-                        boxShadow: '0 2px 6px rgba(0, 0, 0, 0.2)'
-                    }}
-                >
-                    <Pen size={18} color={bgColor} />
-                </button>
+                    position="top-right"
+                    zIndex={2}
+                />
 
                 {/* Inline error banner (profile loaded but with a warning) */}
                 {error && profileData && (

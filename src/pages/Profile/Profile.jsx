@@ -18,6 +18,7 @@ import { useNavigate } from 'react-router-dom';
 
 import { Page } from '@/components/Layout/Page.jsx';
 import { DisplayData } from '@/components/DisplayData/DisplayData.jsx';
+import { CircleButton } from '@/components/CircleButton/CircleButton.jsx';
 import useAuth from '@/hooks/useAuth';
 import { profileService } from '@/services/api/profileService.js';
 
@@ -189,37 +190,17 @@ export function Profile() {
     return (
         <Page>
             {/* Floating Action Button - Top Right Corner */}
-            <div style={{
-                position: 'fixed',
-                top: 16,
-                right: 16,
-                zIndex: 1000,
-                display: 'flex',
-                gap: 8,
-                alignItems: 'center'
-            }}>
-                <button
-                    onClick={handleEdit}
-                    style={{
-                        width: 48,
-                        height: 48,
-                        borderRadius: '50%',
-                        backgroundColor: 'var(--tgui--button_color, #3390ec)',
-                        border: 'none',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        cursor: 'pointer',
-                        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
-                        transition: 'transform 0.2s, box-shadow 0.2s'
-                    }}
-                    onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.95)'}
-                    onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                    onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                >
-                    <Pencil size={20} color="#fff" />
-                </button>
-            </div>
+            <CircleButton
+                icon={<Pencil size={20} color="#fff" />}
+                onClick={handleEdit}
+                position="top-right"
+                size={48}
+                top="16px"
+                right="16px"
+                backgroundColor="var(--tgui--button_color, #3390ec)"
+                boxShadow="0 2px 8px rgba(0, 0, 0, 0.15)"
+                zIndex={1000}
+            />
 
             <List style={{ paddingBottom: '' }}>
                 {error && (
