@@ -3,6 +3,7 @@ import { RefreshCw, MapPin } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Page } from '@/components/Layout/Page.jsx';
 import { HalftoneBackground } from '@/components/HalftoneBackground.jsx';
+import { ErrorMessage } from '@/components/ErrorMessage.jsx';
 import { EventInformation } from '../Events/EventInformation.jsx';
 import { DateRangePicker } from '@/components/DateRangePicker/DateRangePicker.jsx';
 import { TownPicker } from '@/components/TownPicker/TownPicker.jsx';
@@ -528,17 +529,7 @@ export function Feed() {
                     overflow: 'visible'
                 }}>
                 {/* Fixed background */}
-                <div style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: '100%',
-                    pointerEvents: 'none',
-                    zIndex: 0
-                }}>
-                    <HalftoneBackground color={colors.feedPrimaryDark} />
-                </div>
+                <HalftoneBackground color={colors.feedPrimaryDark} />
 
 
                 {/* Filter toggle switch */}
@@ -648,24 +639,7 @@ export function Feed() {
                 )}
 
                 {/* Error message */}
-                {error && (
-                    <div style={{
-                        width: '90%',
-                        marginTop: '1em',
-                        padding: '0.75em 1em',
-                        backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                        borderRadius: '12px',
-                        color: '#c0392b',
-                        fontSize: '0.9em',
-                        fontWeight: '500',
-                        textAlign: 'center',
-                        position: 'relative',
-                        zIndex: 1,
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
-                    }}>
-                        {error}
-                    </div>
-                )}
+                <ErrorMessage message={error} />
 
                 {/* Main card area */}
                 <div style={{

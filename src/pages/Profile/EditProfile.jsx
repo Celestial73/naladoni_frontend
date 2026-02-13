@@ -1,14 +1,15 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Page } from '@/components/Layout/Page.jsx';
 import { HalftoneBackground } from '@/components/HalftoneBackground.jsx';
 import { CircleButton } from '@/components/CircleButton/CircleButton.jsx';
+import { ErrorMessage } from '@/components/ErrorMessage.jsx';
 import { colors } from '@/constants/colors.js';
 import { EditFieldCard } from '@/components/Profile/ProfileEdit/EditFieldCard.jsx';
 import { PhotoEditRow } from '@/components/Profile/ProfileEdit/PhotoEditRow.jsx';
 import { EditInfoCard } from '@/components/Profile/ProfileEdit/EditInfoCard.jsx';
 import { SectionTitle } from '@/pages/Events/SectionTitle.jsx';
-import useAuth from '@/hooks/useAuth';
+import { useEditProfile } from '@/hooks/useEditProfile.js';
 import { profileService } from '@/services/api/profileService.js';
 import { Save, ArrowLeft, Palette } from 'lucide-react';
 import { normalizeApiColor, darkenHex } from '@/utils/colorUtils.js';
@@ -27,73 +28,14 @@ function getInterestColor(index) {
 
 export function EditProfile() {
     const navigate = useNavigate();
-    const { auth } = useAuth();
     const { updateProfileCache } = useDataCache();
     const fileInputRef = useRef(null);
 
-    const [fetching, setFetching] = useState(true);
+    const { formData, setFormData, fetching, error, refetch } = useEditProfile();
+    
     const [saving, setSaving] = useState(false);
     const [uploadingPhotos, setUploadingPhotos] = useState(false);
     const [deletingPhotos, setDeletingPhotos] = useState(false);
-    const [error, setError] = useState(null);
-
-    const [formData, setFormData] = useState({
-        name: auth.user?.name || '',
-        age: '',
-        photos: [],
-        bio: '',
-        gender: '',
-        customFields: [],
-        interests: [],
-        backgroundColor: 'd92326',
-    });
-
-    // Fetch profile on mount
-    useEffect(() => {
-        if (!auth?.initData) {
-            setFetching(false);
-            return;
-        }
-
-        const abortController = new AbortController();
-
-        const fetchProfile = async () => {
-            try {
-                setFetching(true);
-                setError(null);
-                const response = await profileService.getMyProfile(abortController.signal);
-
-                if (response) {
-                    setFormData({
-                        name: response.display_name || auth.user?.name || '',
-                        age: response.age?.toString() || '',
-                        photos: response.photos || [],
-                        bio: response.bio || '',
-                        gender: response.gender || '',
-                        customFields: (response.custom_fields || []).map((field, index) => ({
-                            id: field.id || `field-${index}-${Date.now()}`,
-                            title: field.title || '',
-                            value: field.value || '',
-                        })),
-                        interests: response.interests || [],
-                        backgroundColor: response.background_color || 'd92326',
-                    });
-                }
-            } catch (err) {
-                if (err.name !== 'AbortError' && err.name !== 'CanceledError') {
-                    setError(err.response?.data?.message || err.message || 'Failed to fetch profile');
-                }
-            } finally {
-                if (!abortController.signal.aborted) {
-                    setFetching(false);
-                }
-            }
-        };
-
-        fetchProfile();
-
-        return () => abortController.abort();
-    }, [auth?.initData, auth.user?.name]);
 
     // --- Generic field change ---
     const handleChange = (field, value) => {
@@ -294,17 +236,7 @@ export function EditProfile() {
                 overflow: 'visible'
             }}>
                 {/* Fixed background */}
-                <div style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: '100%',
-                    pointerEvents: 'none',
-                    zIndex: 0
-                }}>
-                    <HalftoneBackground color={bgColorDark} />
-                </div>
+                <HalftoneBackground color={bgColorDark} />
 
                 {/* Back button */}
                 <CircleButton
@@ -422,24 +354,7 @@ export function EditProfile() {
                 </div>
 
                 {/* Error message */}
-                {error && (
-                    <div style={{
-                        width: '90%',
-                        marginTop: '1em',
-                        padding: '0.75em 1em',
-                        backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                        borderRadius: '12px',
-                        color: '#c0392b',
-                        fontSize: '0.9em',
-                        fontWeight: '500',
-                        textAlign: 'center',
-                        position: 'relative',
-                        zIndex: 1,
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
-                    }}>
-                        {error}
-                    </div>
-                )}
+                <ErrorMessage message={error} />
 
                 {/* Name and age inputs */}
                 <div style={{

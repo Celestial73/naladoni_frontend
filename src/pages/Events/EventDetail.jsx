@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Calendar, MapPin, Users, Check, X as XIcon, Edit, Trash2, RefreshCw } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -6,227 +6,72 @@ import { Page } from '@/components/Layout/Page.jsx';
 import { HalftoneBackground } from '@/components/HalftoneBackground.jsx';
 import { EventInformation } from './EventInformation.jsx';
 import { SectionTitle } from './SectionTitle.jsx';
+import { ErrorMessage } from '@/components/ErrorMessage.jsx';
 import { ProfileDrawer } from '../Profile/ProfileDrawer.jsx';
 import { colors } from '@/constants/colors.js';
 import { eventsService } from '@/services/api/eventsService.js';
-import { eventActionsService } from '@/services/api/eventActionsService.js';
-import { formatDateToDDMMYYYY } from '@/utils/dateFormatter.js';
+import { useEventDetail } from '@/hooks/useEventDetail.js';
 import { useDataCache } from '@/context/DataCacheProvider.jsx';
 
 export function EventDetail() {
     const navigate = useNavigate();
     const { id } = useParams();
-    const { eventsCache, updateEventsCache } = useDataCache();
-    
-    const [event, setEvent] = useState(null);
-    const [pendingRequests, setPendingRequests] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [loadingRequests, setLoadingRequests] = useState(false);
-    const [error, setError] = useState(null);
-    const [errorRequests, setErrorRequests] = useState(null);
-    const [processingAction, setProcessingAction] = useState(null);
+    const { updateEventsCache, eventsCache } = useDataCache();
     const [selectedAttendee, setSelectedAttendee] = useState(null);
-    const [isOwner, setIsOwner] = useState(false);
+    
+    const {
+        event,
+        isOwner,
+        pendingRequests,
+        loading,
+        loadingRequests,
+        error,
+        errorRequests,
+        processingAction,
+        refetchEvent,
+        handleAcceptRequest: handleAcceptRequestFromHook,
+        handleRejectRequest: handleRejectRequestFromHook,
+        handleDeleteParticipant: handleDeleteParticipantFromHook
+    } = useEventDetail(id);
 
-    // Fetch event details
-    useEffect(() => {
-        if (!id) {
-            setLoading(false);
-            return;
-        }
-
-        const abortController = new AbortController();
-
-        const fetchEvent = async () => {
-            try {
-                setLoading(true);
-                setError(null);
-                const eventData = await eventsService.getEvent(id, abortController.signal);
-                
-                if (!abortController.signal.aborted) {
-                    // Transform event data
-                    const transformedEvent = {
-                        id: eventData.id || eventData._id,
-                        title: eventData.title,
-                        date: formatDateToDDMMYYYY(eventData.date) || '',
-                        location: eventData.location,
-                        description: eventData.description,
-                        attendees: eventData.participants || eventData.attendees || [],
-                        maxAttendees: eventData.capacity,
-                        image: eventData.picture || eventData.image || eventData.imageUrl || eventData.creator_profile?.photo_url || null,
-                        picture: eventData.picture || '',
-                        creator_profile: eventData.creator_profile,
-                    };
-                    
-                    setEvent(transformedEvent);
-                    
-                    // Check if current user is the owner by checking if event is in myEvents cache
-                    // If cache is available and event is found, we know user is owner
-                    // If cache is empty or event not found, we'll verify via pending requests fetch
-                    const eventId = transformedEvent.id;
-                    const myEvents = eventsCache.myEvents || [];
-                    if (myEvents.length > 0) {
-                        // Cache is loaded, check if event is in it
-                        const isEventOwner = myEvents.some(e => e.id === eventId);
-                        setIsOwner(isEventOwner);
-                    } else {
-                        // Cache not loaded yet, start with false (will be verified via pending requests)
-                        setIsOwner(false);
-                    }
-                }
-            } catch (err) {
-                if (err.name !== 'AbortError' && err.name !== 'CanceledError') {
-                    if (!abortController.signal.aborted) {
-                        setError(err.message || 'Не удалось загрузить событие');
-                    }
-                }
-            } finally {
-                if (!abortController.signal.aborted) {
-                    setLoading(false);
-                }
-            }
-        };
-
-        fetchEvent();
-
-        return () => {
-            abortController.abort();
-        };
-    }, [id, eventsCache.myEvents]);
-
-    // Fetch pending requests if owner (or to verify ownership if cache wasn't available)
-    useEffect(() => {
-        if (!event?.id || loading) {
-            return;
-        }
-
-        // Only fetch if we think we're the owner, or if cache wasn't available to verify
-        const myEvents = eventsCache.myEvents || [];
-        const cacheWasAvailable = myEvents.length > 0;
-        const shouldFetch = isOwner || !cacheWasAvailable;
-
-        if (!shouldFetch) {
-            return;
-        }
-
-        const abortController = new AbortController();
-
-        const fetchPendingRequests = async () => {
-            try {
-                setLoadingRequests(true);
-                setErrorRequests(null);
-                const requests = await eventActionsService.getPendingLikesForEvent(event.id, abortController.signal);
-                
-                if (!abortController.signal.aborted) {
-                    setPendingRequests(requests || []);
-                    // If we successfully fetched, we're definitely the owner
-                    if (!isOwner) {
-                        setIsOwner(true);
-                    }
-                }
-            } catch (err) {
-                if (err.name !== 'AbortError' && err.name !== 'CanceledError') {
-                    if (!abortController.signal.aborted) {
-                        // If we get 403 or similar, user is not owner - update state
-                        if (err.response?.status === 403 || err.response?.status === 404) {
-                            setIsOwner(false);
-                        } else {
-                            // Only show error if we already knew we were owner
-                            if (isOwner) {
-                                setErrorRequests(err.message || 'Не удалось загрузить запросы');
-                            }
-                        }
-                    }
-                }
-            } finally {
-                if (!abortController.signal.aborted) {
-                    setLoadingRequests(false);
-                }
-            }
-        };
-
-        fetchPendingRequests();
-
-        return () => {
-            abortController.abort();
-        };
-    }, [isOwner, event?.id, loading, eventsCache.myEvents]);
-
+    // Wrapper to update cache when accepting/rejecting requests
     const handleAcceptRequest = async (eventActionId) => {
-        try {
-            setProcessingAction(eventActionId);
-            setErrorRequests(null);
-            await eventActionsService.acceptLike(eventActionId);
-            
-            // Remove from pending list
-            const updatedPending = pendingRequests.filter((req) => req.id !== eventActionId);
-            setPendingRequests(updatedPending);
-            
-            // Update cache: decrease pending request count for this event
-            if (event?.id) {
-                const currentCounts = eventsCache.pendingRequestCounts || {};
-                const newCount = Math.max(0, (currentCounts[event.id] || 0) - 1);
-                updateEventsCache({
-                    pendingRequestCounts: {
-                        ...currentCounts,
-                        [event.id]: newCount,
-                    },
-                });
-            }
-            
-            // Refresh event data to show new participant
-            if (event?.id) {
-                try {
-                    const updatedEventData = await eventsService.getEvent(event.id);
-                    const transformedEvent = {
-                        id: updatedEventData.id || updatedEventData._id,
-                        title: updatedEventData.title,
-                        date: formatDateToDDMMYYYY(updatedEventData.date) || '',
-                        location: updatedEventData.location,
-                        description: updatedEventData.description,
-                        attendees: updatedEventData.participants || updatedEventData.attendees || [],
-                        maxAttendees: updatedEventData.capacity,
-                        image: updatedEventData.picture || updatedEventData.image || updatedEventData.imageUrl || updatedEventData.creator_profile?.photo_url || null,
-                        picture: updatedEventData.picture || '',
-                        creator_profile: updatedEventData.creator_profile,
-                    };
-                    setEvent(transformedEvent);
-                } catch (err) {
-                    // Silently fail - event will refresh on next load
-                }
-            }
-        } catch (err) {
-            setErrorRequests(err.message || 'Не удалось принять запрос');
-        } finally {
-            setProcessingAction(null);
+        await handleAcceptRequestFromHook(eventActionId);
+        
+        // Update cache: decrease pending request count for this event
+        if (event?.id) {
+            const currentCounts = eventsCache.pendingRequestCounts || {};
+            const newCount = Math.max(0, (currentCounts[event.id] || 0) - 1);
+            updateEventsCache({
+                pendingRequestCounts: {
+                    ...currentCounts,
+                    [event.id]: newCount,
+                },
+            });
         }
     };
 
     const handleRejectRequest = async (eventActionId) => {
+        await handleRejectRequestFromHook(eventActionId);
+        
+        // Update cache: decrease pending request count for this event
+        if (event?.id) {
+            const currentCounts = eventsCache.pendingRequestCounts || {};
+            const newCount = Math.max(0, (currentCounts[event.id] || 0) - 1);
+            updateEventsCache({
+                pendingRequestCounts: {
+                    ...currentCounts,
+                    [event.id]: newCount,
+                },
+            });
+        }
+    };
+
+    const handleDeleteParticipant = async (participantId) => {
         try {
-            setProcessingAction(eventActionId);
-            setErrorRequests(null);
-            await eventActionsService.rejectLike(eventActionId);
-            
-            // Remove from pending list
-            const updatedPending = pendingRequests.filter((req) => req.id !== eventActionId);
-            setPendingRequests(updatedPending);
-            
-            // Update cache: decrease pending request count for this event
-            if (event?.id) {
-                const currentCounts = eventsCache.pendingRequestCounts || {};
-                const newCount = Math.max(0, (currentCounts[event.id] || 0) - 1);
-                updateEventsCache({
-                    pendingRequestCounts: {
-                        ...currentCounts,
-                        [event.id]: newCount,
-                    },
-                });
-            }
+            await handleDeleteParticipantFromHook(participantId);
         } catch (err) {
-            setErrorRequests(err.message || 'Не удалось отклонить запрос');
-        } finally {
-            setProcessingAction(null);
+            // Error is already handled by the hook
         }
     };
 
@@ -235,16 +80,10 @@ export function EventDetail() {
         
         try {
             await eventsService.deleteParticipant(event.id, participantId);
-            
-            // Update event attendees
-            setEvent((prev) => ({
-                ...prev,
-                attendees: prev.attendees?.filter(
-                    (attendee) => (attendee.id || attendee.user) !== participantId
-                ) || []
-            }));
+            // Refresh event data to reflect changes
+            await refetchEvent();
         } catch (err) {
-            setError(err.message || 'Не удалось удалить участника');
+            // Error handling is done by the hook
         }
     };
 
@@ -438,17 +277,7 @@ export function EventDetail() {
                 overflow: 'visible'
             }}>
                 {/* Fixed background */}
-                <div style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: '100%',
-                    pointerEvents: 'none',
-                    zIndex: 0
-                }}>
-                    <HalftoneBackground color={colors.eventPrimaryDark} />
-                </div>
+                <HalftoneBackground color={colors.eventPrimaryDark} />
 
                 {/* Back button */}
                 <button
@@ -563,24 +392,7 @@ export function EventDetail() {
                 )}
 
                 {/* Error message */}
-                {error && (
-                    <div style={{
-                        width: '90%',
-                        marginTop: '4em',
-                        padding: '0.75em 1em',
-                        backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                        borderRadius: '12px',
-                        color: '#c0392b',
-                        fontSize: '0.9em',
-                        fontWeight: '500',
-                        textAlign: 'center',
-                        position: 'relative',
-                        zIndex: 1,
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
-                    }}>
-                        {error}
-                    </div>
-                )}
+                <ErrorMessage message={error} marginTop="4em" />
 
                 {/* Event Information Card */}
                 <div style={{
@@ -670,20 +482,7 @@ export function EventDetail() {
                         </div>
 
                         {errorRequests && (
-                            <div style={{
-                                width: '100%',
-                                padding: '0.75em 1em',
-                                backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                                borderRadius: '12px',
-                                color: '#c0392b',
-                                fontSize: '0.9em',
-                                fontWeight: '500',
-                                textAlign: 'center',
-                                marginBottom: '1em',
-                                boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
-                            }}>
-                                {errorRequests}
-                            </div>
+                            <ErrorMessage message={errorRequests} width="100%" marginTop="0" marginBottom="1em" />
                         )}
 
                         {loadingRequests ? (

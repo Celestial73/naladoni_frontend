@@ -29,7 +29,7 @@ export function HalftoneBackground({ color = 'rgba(0,0,0,0.15)', spacing = 10, m
 
     return (
         <div style={{
-            position: 'absolute',
+            position: 'fixed',
             top: 0,
             left: 0,
             width: '100%',

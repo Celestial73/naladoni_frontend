@@ -1,15 +1,15 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Page } from '@/components/Layout/Page.jsx';
 import { ProfileCarousel } from '@/components/Profile/ProfileCarousel.jsx';
 import { ProfileInfoCard } from '@/components/Profile/ProfileInfoCard.jsx';
 import { HalftoneBackground } from '@/components/HalftoneBackground.jsx';
 import { CircleButton } from '@/components/CircleButton/CircleButton.jsx';
+import { ErrorMessage } from '@/components/ErrorMessage.jsx';
 import { Info, Pen } from 'lucide-react';
 import { colors } from '@/constants/colors.js';
 import useAuth from '@/hooks/useAuth';
-import { profileService } from '@/services/api/profileService.js';
-import { useDataCache } from '@/context/DataCacheProvider.jsx';
+import { useProfile } from '@/hooks/useProfile.js';
 import { normalizeApiColor, darkenHex } from '@/utils/colorUtils.js';
 import { LoadingPage } from '@/components/LoadingPage.jsx';
 
@@ -23,59 +23,7 @@ const INTEREST_COLORS = [
 export function Profile() {
     const navigate = useNavigate();
     const { auth } = useAuth();
-    const { profileCache, updateProfileCache, isProfileCacheValid } = useDataCache();
-
-    // Restore state from cache on mount
-    const [profileData, setProfileData] = useState(profileCache.profileData || null);
-    const [loading, setLoading] = useState(!isProfileCacheValid() || !profileCache.profileData);
-    const [error, setError] = useState(null);
-
-    // Fetch profile data from backend on component mount - only if cache is invalid
-    useEffect(() => {
-        if (!auth?.initData) {
-            setLoading(false);
-            return;
-        }
-
-        // Only fetch if cache is invalid or doesn't exist
-        if (isProfileCacheValid() && profileCache.profileData !== null) {
-            // Cache is valid, skip fetching
-            setLoading(false);
-            return;
-        }
-
-        const abortController = new AbortController();
-
-        const fetchProfile = async () => {
-            try {
-                setLoading(true);
-                setError(null);
-                const response = await profileService.getMyProfile(abortController.signal);
-
-                if (response) {
-                    setProfileData(response);
-                    // Update cache
-                    updateProfileCache({
-                        profileData: response,
-                    });
-                }
-            } catch (err) {
-                if (err.name !== 'AbortError' && err.name !== 'CanceledError') {
-                    setError(err.response?.data?.message || err.message || 'Failed to fetch profile');
-                }
-            } finally {
-                if (!abortController.signal.aborted) {
-                    setLoading(false);
-                }
-            }
-        };
-
-        fetchProfile();
-
-        return () => {
-            abortController.abort();
-        };
-    }, [auth?.initData, isProfileCacheValid, profileCache.profileData, updateProfileCache]);
+    const { profileData, loading, error } = useProfile();
 
     // Map backend response to component-friendly shapes
     const name = profileData?.display_name || profileData?.name || auth.user?.name || '';
@@ -133,17 +81,7 @@ export function Profile() {
                 overflow: 'visible'
             }}>
                 {/* Fixed background */}
-                <div style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: '100%',
-                    pointerEvents: 'none',
-                    zIndex: 0
-                }}>
-                    <HalftoneBackground color={bgColorDark} />
-                </div>
+                <HalftoneBackground color={bgColorDark} />
                     <div style={{
                         position: 'relative',
                         zIndex: 1,
@@ -183,17 +121,7 @@ export function Profile() {
                 overflow: 'visible'
             }}>
                 {/* Fixed background */}
-                <div style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: '100%',
-                    pointerEvents: 'none',
-                    zIndex: 0
-                }}>
-                    <HalftoneBackground color={bgColorDark} />
-                </div>
+                <HalftoneBackground color={bgColorDark} />
 
                 {/* Edit Button */}
                 <CircleButton

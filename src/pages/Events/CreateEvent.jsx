@@ -3,11 +3,13 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Save, Calendar, MapPin, Users, Image as ImageIcon, Upload, X, Loader } from 'lucide-react';
 import { Page } from '@/components/Layout/Page.jsx';
 import { HalftoneBackground } from '@/components/HalftoneBackground.jsx';
+import { ErrorMessage } from '@/components/ErrorMessage.jsx';
 import { CircleButton } from '@/components/CircleButton/CircleButton.jsx';
 import { EditFieldCard } from '@/components/Profile/ProfileEdit/EditFieldCard.jsx';
 import { TownPicker } from '@/components/TownPicker/TownPicker.jsx';
 import { colors } from '@/constants/colors.js';
 import { eventsService } from '@/services/api/eventsService.js';
+import { useCreateEvent } from '@/hooks/useCreateEvent.js';
 import { RUSSIAN_CITIES } from '@/data/russianCities.js';
 
 /**
@@ -83,25 +85,15 @@ const convertDateToISO8601 = (dateStr) => {
 export function CreateEvent() {
   const navigate = useNavigate();
   const { id } = useParams();
-  const isEditMode = Boolean(id);
-  
   const fileInputRef = useRef(null);
 
-  const [formData, setFormData] = useState({
-    title: '',
-    date: '',
-    town: '',
-    location: '',
-    maxAttendees: '',
-    description: '',
-    picture: '',
-  });
+  const { formData, setFormData, fetching, error: fetchError, isEditMode } = useCreateEvent(id);
+  
   const [selectedFile, setSelectedFile] = useState(null);
   const [filePreview, setFilePreview] = useState(null);
   const [uploadingPicture, setUploadingPicture] = useState(false);
   const [deletingPicture, setDeletingPicture] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [fetching, setFetching] = useState(isEditMode);
   const [error, setError] = useState(null);
 
   // Clean up blob URL on unmount / when preview changes
@@ -111,54 +103,16 @@ export function CreateEvent() {
     };
   }, [filePreview]);
 
-  // Fetch event data on mount if in edit mode
-  useEffect(() => {
-    if (!isEditMode) return;
-
-    const abortController = new AbortController();
-
-    const fetchEvent = async () => {
-      try {
-        setFetching(true);
-        setError(null);
-        const event = await eventsService.getEvent(id, abortController.signal);
-
-        // Parse ISO date from API to form input
-        const dateStr = parseISODateToFormInput(event.date || '');
-
-        setFormData({
-          title: event.title || '',
-          date: dateStr,
-          town: event.town || '',
-          location: event.location || '',
-          maxAttendees: event.capacity?.toString() || '',
-          description: event.description || '',
-          picture: event.picture || '',
-        });
-      } catch (err) {
-        if (err.name !== 'AbortError' && err.name !== 'CanceledError') {
-          if (!abortController.signal.aborted) {
-            setError(err.message || 'Не удалось загрузить событие');
-          }
-        }
-      } finally {
-        if (!abortController.signal.aborted) {
-          setFetching(false);
-        }
-      }
-    };
-
-    fetchEvent();
-
-    return () => {
-      abortController.abort();
-    };
-  }, [id, isEditMode]);
+  // Use fetchError if available, otherwise use local error
+  const displayError = fetchError || error;
 
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     setError(null);
   };
+
+  // Use fetchError if available, otherwise use local error
+  const displayError = fetchError || error;
 
   // --- Picture handlers ---
   const handlePictureClick = () => {
@@ -369,17 +323,7 @@ export function CreateEvent() {
         overflow: 'visible'
       }}>
         {/* Fixed background */}
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%',
-          pointerEvents: 'none',
-          zIndex: 0
-        }}>
-          <HalftoneBackground color={colors.eventPrimaryDark} />
-        </div>
+        <HalftoneBackground color={colors.eventPrimaryDark} />
 
         {/* Back button */}
         <CircleButton
@@ -428,24 +372,7 @@ export function CreateEvent() {
         </div>
 
         {/* Error message */}
-        {error && (
-          <div style={{
-            width: '90%',
-            marginTop: '1em',
-            padding: '0.75em 1em',
-            backgroundColor: 'rgba(255, 255, 255, 0.9)',
-            borderRadius: '12px',
-            color: '#c0392b',
-            fontSize: '0.9em',
-            fontWeight: '500',
-            textAlign: 'center',
-            position: 'relative',
-            zIndex: 1,
-            boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
-          }}>
-            {error}
-          </div>
-        )}
+        <ErrorMessage message={displayError} />
 
         {/* Single large card with all input fields */}
         <div style={{
