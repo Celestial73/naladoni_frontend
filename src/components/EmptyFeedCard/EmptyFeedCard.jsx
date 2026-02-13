@@ -20,7 +20,7 @@ export function EmptyFeedCard({ onRefresh, onResetSkips, fetching }) {
                 color: colors.feedPrimary,
                 marginBottom: '0.3em'
             }}>
-                ПУСТО!
+                КОНЕЦ...
             </div>
             <div style={{
                 fontSize: '0.95em',
@@ -28,7 +28,7 @@ export function EmptyFeedCard({ onRefresh, onResetSkips, fetching }) {
                 lineHeight: '1.5',
                 marginBottom: '1.5em'
             }}>
-                Вы просмотрели все события в этом городе. Загляните позже!
+                Вы просмотрели все события в этом городе, или их тупо НЕТ. Загляните позже!
             </div>
             <div style={{
                 display: 'flex',
@@ -50,7 +50,6 @@ export function EmptyFeedCard({ onRefresh, onResetSkips, fetching }) {
                         fontFamily: "'Uni Sans', sans-serif",
                         fontStyle: 'italic',
                         cursor: fetching ? 'not-allowed' : 'pointer',
-                        boxShadow: '4px 6px 0px rgba(0, 0, 0, 0.25)',
                         opacity: fetching ? 0.6 : 1,
                         display: 'flex',
                         alignItems: 'center',
@@ -75,7 +74,6 @@ export function EmptyFeedCard({ onRefresh, onResetSkips, fetching }) {
                         fontFamily: "'Uni Sans', sans-serif",
                         fontStyle: 'italic',
                         cursor: fetching ? 'not-allowed' : 'pointer',
-                        boxShadow: '4px 6px 0px rgba(0, 0, 0, 0.25)',
                         opacity: fetching ? 0.6 : 1,
                         display: 'flex',
                         alignItems: 'center',

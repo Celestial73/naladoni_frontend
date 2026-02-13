@@ -4,7 +4,7 @@ import { ArrowLeft, Calendar, MapPin, Users, Check, X as XIcon, Edit, Trash2, Re
 import { AnimatePresence, motion } from 'framer-motion';
 import { Page } from '@/components/Layout/Page.jsx';
 import { HalftoneBackground } from '@/components/HalftoneBackground.jsx';
-import { EventInformation } from './EventInformation.jsx';
+import { EventCard } from './EventCard.jsx';
 import { SectionTitle } from './SectionTitle.jsx';
 import { ErrorMessage } from '@/components/ErrorMessage.jsx';
 import { ProfileDrawer } from '../Profile/ProfileDrawer.jsx';
@@ -296,15 +296,19 @@ export function EventDetail() {
 
                 {/* Action buttons for owner */}
                 {isOwner && (
-                    <>
+                    <div style={{
+                        position: 'fixed',
+                        top: '1em',
+                        right: '1em',
+                        zIndex: 10,
+                        display: 'flex',
+                        gap: '0.75em',
+                        alignItems: 'center'
+                    }}>
                         <button
                             onClick={handleRefresh}
                             disabled={loading || loadingRequests}
                             style={{
-                                position: 'fixed',
-                                top: '1em',
-                                right: '5.5em',
-                                zIndex: 10,
                                 width: '50px',
                                 height: '50px',
                                 borderRadius: '50%',
@@ -328,10 +332,6 @@ export function EventDetail() {
                         <button
                             onClick={() => navigate(`/events/edit/${event.id}`)}
                             style={{
-                                position: 'fixed',
-                                top: '1em',
-                                right: '8em',
-                                zIndex: 10,
                                 width: '50px',
                                 height: '50px',
                                 borderRadius: '50%',
@@ -354,10 +354,6 @@ export function EventDetail() {
                         <button
                             onClick={handleDeleteEvent}
                             style={{
-                                position: 'fixed',
-                                top: '1em',
-                                right: '1em',
-                                zIndex: 10,
                                 width: '50px',
                                 height: '50px',
                                 borderRadius: '50%',
@@ -376,7 +372,7 @@ export function EventDetail() {
                         >
                             <Trash2 size={22} color="#c0392b" />
                         </button>
-                    </>
+                    </div>
                 )}
 
                 {/* Error message */}
@@ -387,22 +383,18 @@ export function EventDetail() {
                     width: '90%',
                     marginTop: error ? '1em' : '4em',
                     position: 'relative',
-                    zIndex: 1
+                    zIndex: 1,
+                    backgroundColor: colors.white,
+                    borderRadius: '47px 0 47px 0',
+                    overflow: 'hidden',
+                    boxShadow: '8px 10px 0px rgba(0, 0, 0, 0.25)',
                 }}>
-                    <div style={{
-                        backgroundColor: colors.white,
-                        borderRadius: '47px 0 47px 0',
-                        overflow: 'hidden',
-                        boxShadow: `10px 14px 0px ${colors.eventPrimaryDark}`
-                    }}>
-                        <EventInformation
-                            event={event}
-                            variant="card"
-                            onAttendeeClick={setSelectedAttendee}
-                            onDeleteParticipant={isOwner ? handleDeleteParticipant : null}
-                            isOwner={isOwner}
-                        />
-                    </div>
+                    <EventCard
+                        event={event}
+                        onAttendeeClick={setSelectedAttendee}
+                        onDeleteParticipant={isOwner ? handleDeleteParticipant : null}
+                        isOwner={isOwner}
+                    />
                 </div>
 
                 {/* Leave Event Button - Only for non-owners */}

@@ -3,7 +3,7 @@ import { RefreshCw, MapPin } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Page } from '@/components/Layout/Page.jsx';
 import { HalftoneBackground } from '@/components/HalftoneBackground.jsx';
-import { EventInformation } from '../Events/EventInformation.jsx';
+import { EventCard } from '../Events/EventCard.jsx';
 import { DateRangePicker } from '@/components/DateRangePicker/DateRangePicker.jsx';
 import { TownPicker } from '@/components/TownPicker/TownPicker.jsx';
 import { colors } from '@/constants/colors.js';
@@ -826,9 +826,8 @@ export function NewFeed() {
                                             backgroundColor: colors.white
                                         }}
                                     >
-                                        <EventInformation
+                                        <EventCard
                                             event={currentEvent}
-                                            variant="card"
                                         />
                                     </motion.div>
                                 ) : null}

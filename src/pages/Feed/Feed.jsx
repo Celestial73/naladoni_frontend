@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Page } from '@/components/Layout/Page.jsx';
 import { HalftoneBackground } from '@/components/HalftoneBackground.jsx';
 import { ErrorMessage } from '@/components/ErrorMessage.jsx';
-import { EventInformation } from '../Events/EventInformation.jsx';
+import { EventCard } from '../Events/EventCard.jsx';
 import { MessagePopup } from '@/components/MessagePopup/MessagePopup.jsx';
 import { EmptyFeedCard } from '@/components/EmptyFeedCard/EmptyFeedCard.jsx';
 import { FeedFilters } from '@/components/FeedFilters/FeedFilters.jsx';
@@ -168,7 +168,7 @@ export function Feed() {
                     overflow: 'visible'
                 }}>
                 {/* Fixed background */}
-                <HalftoneBackground color={colors.feedPrimaryDark} />
+                <HalftoneBackground color={colors.feedPrimaryDark} pattern = 'radial'/>
 
 
                 {/* Filter toggle and filters card */}
@@ -243,13 +243,12 @@ export function Feed() {
                                             width: '100%',
                                             borderRadius: '47px 0 47px 0',
                                             overflow: 'hidden',
-                                            boxShadow: `10px 14px 0px ${colors.feedPrimaryDark}`,
+                                            boxShadow: '8px 10px 0px rgba(0, 0, 0, 0.25)',
                                             backgroundColor: colors.white
                                         }}
                                     >
-                                        <EventInformation
+                                        <EventCard
                                             event={currentEvent}
-                                            variant="card"
                                         />
                                     </motion.div>
                                 ) : null}

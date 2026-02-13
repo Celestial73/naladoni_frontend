@@ -41,7 +41,7 @@ export function Events() {
                 overflow: 'visible'
             }}>
                 {/* Fixed background */}
-                <HalftoneBackground color={colors.eventPrimaryDark} />
+                <HalftoneBackground color={colors.eventPrimaryDark} pattern ='waves'/>
 
                 {/* Create Event Button - Fixed top right */}
                 <CircleButton

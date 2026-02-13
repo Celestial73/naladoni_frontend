@@ -11,7 +11,8 @@ export function ProfileInfoCard({ bio, items, interests, accentColor }) {
             marginTop: '2%',
             width: '90%',
             boxSizing: 'border-box',
-            boxShadow: '8px 10px 0px rgba(0, 0, 0, 0.4)'
+            boxShadow: '8px 10px 0px rgba(0, 0, 0, 0.4)',
+            overflow: 'hidden'
         }}>
             {/* Bio text with left border */}
             <div style={{

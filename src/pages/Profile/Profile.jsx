@@ -127,7 +127,7 @@ export function Profile() {
                 justifyContent: 'flex-start',
                 alignItems: 'center',
                 position: 'relative',
-                overflow: 'visible'
+                overflow: 'hidden'
             }}>
                 {/* Fixed background */}
                 <div style={{

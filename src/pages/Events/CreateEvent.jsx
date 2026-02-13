@@ -381,7 +381,7 @@ export function CreateEvent() {
           borderRadius: '47px 0 47px 0',
           padding: '2em 1.5em',
           boxSizing: 'border-box',
-          boxShadow: '10px 14px 0px rgba(0, 0, 0, 0.25)'
+          boxShadow: '0 10px 20px rgba(0, 0, 0, 0.25)'
         }}>
           {/* Title */}
           <div style={{ marginBottom: '1.5em' }}>
@@ -594,7 +594,7 @@ export function CreateEvent() {
           borderRadius: '47px 0 47px 0',
           padding: '2em 1.5em',
           boxSizing: 'border-box',
-          boxShadow: '10px 14px 0px rgba(0, 0, 0, 0.25)'
+          boxShadow: '0 10px 20px rgba(0, 0, 0, 0.25)'
         }}>
           <div style={{
             fontSize: '1em',
