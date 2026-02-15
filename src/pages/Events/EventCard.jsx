@@ -40,8 +40,8 @@ export function EventCard({
             background_color: attendee.background_color,
         };
         
-        // Use attendee ID for the route, fallback to a generated ID if not available
-        const userId = attendee.id || attendee.user_id || `user-${Date.now()}`;
+        // Use attendee ID for the route - prioritize profile_id from API response
+        const userId = attendee.profile_id || attendee.id || attendee.user_id || `user-${Date.now()}`;
         navigate(`/user/${userId}`, { state: { userData } });
     };
     
@@ -49,7 +49,7 @@ export function EventCard({
     const isCreator = (participant) => {
         if (!event.creator_profile) return false;
         const creatorId = event.creator_profile.id || event.creator_profile.user_id || event.creator_profile.user;
-        const participantId = participant.id || participant.user_id || participant.user;
+        const participantId = participant.profile_id || participant.id || participant.user_id || participant.user;
         return creatorId && participantId && creatorId === participantId;
     };
 
@@ -221,8 +221,9 @@ export function EventCard({
                                 marginBottom: event.attendees.length > 5 ? 8 : 0
                             }}>
                                 {(isAttendeesExpanded ? event.attendees : event.attendees.slice(0, 5)).map((attendee) => {
-                                    // Extract participant ID - prioritize user ID fields, NOT attendee.id (which might be event ID or participation record ID)
-                                    const participantId = attendee.user_id || 
+                                    // Extract participant ID - prioritize profile_id from API response
+                                    const participantId = attendee.profile_id ||
+                                                         attendee.user_id || 
                                                          attendee.participant_id ||
                                                          (typeof attendee.user === 'object' ? attendee.user?.id || attendee.user?.user_id : null) ||
                                                          (typeof attendee.user === 'string' || typeof attendee.user === 'number' ? attendee.user : null) ||
@@ -284,7 +285,7 @@ export function EventCard({
                                                     <button
                                                         onClick={(e) => {
                                                             e.stopPropagation();
-                                                            onDeleteParticipant(event.id, participantId);
+                                                            onDeleteParticipant(participantId);
                                                         }}
                                                         style={{
                                                             position: 'absolute',

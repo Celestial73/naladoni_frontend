@@ -10,6 +10,7 @@ import { TownPicker } from '@/components/TownPicker/TownPicker.jsx';
 import { colors } from '@/constants/colors.js';
 import { eventsService } from '@/api/services/eventsService.js';
 import { useCreateEvent } from '@/hooks/useCreateEvent.js';
+import { useDataCache } from '@/context/DataCacheProvider.jsx';
 import { RUSSIAN_CITIES } from '@/data/russianCities.js';
 
 /**
@@ -86,6 +87,7 @@ export function CreateEvent() {
   const navigate = useNavigate();
   const { id } = useParams();
   const fileInputRef = useRef(null);
+  const { clearEventsCache } = useDataCache();
 
   const { formData, setFormData, fetching, error: fetchError, isEditMode } = useCreateEvent(id);
   
@@ -261,6 +263,9 @@ export function CreateEvent() {
         }
       }
 
+      // Clear events cache to force refresh when navigating back
+      clearEventsCache();
+
       navigate('/events');
     } catch (err) {
       setError(err.message || `Не удалось ${isEditMode ? 'обновить' : 'создать'} событие`);
@@ -284,7 +289,7 @@ export function CreateEvent() {
           justifyContent: 'center',
           position: 'relative'
         }}>
-          <HalftoneBackground color={colors.eventPrimaryDark} />
+                    <HalftoneBackground color={colors.eventPrimaryDark} pattern='waves' />
           <div style={{
             position: 'relative',
             zIndex: 1,
@@ -320,7 +325,7 @@ export function CreateEvent() {
         overflow: 'visible'
       }}>
         {/* Fixed background */}
-        <HalftoneBackground color={colors.eventPrimaryDark} />
+        <HalftoneBackground color={colors.eventPrimaryDark} pattern='waves' />
 
         {/* Back button */}
         <CircleButton

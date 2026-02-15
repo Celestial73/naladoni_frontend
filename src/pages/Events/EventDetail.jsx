@@ -16,7 +16,7 @@ import { useDataCache } from '@/context/DataCacheProvider.jsx';
 export function EventDetail() {
     const navigate = useNavigate();
     const { id } = useParams();
-    const { updateEventsCache, eventsCache } = useDataCache();
+    const { updateEventsCache, eventsCache, clearEventsCache } = useDataCache();
     const [selectedAttendee, setSelectedAttendee] = useState(null);
     
     const {
@@ -49,6 +49,10 @@ export function EventDetail() {
                 },
             });
         }
+        
+        // Invalidate events cache to force refresh when navigating back
+        // This ensures the events list shows updated participant counts
+        clearEventsCache();
     };
 
     const handleRejectRequest = async (eventActionId) => {
@@ -162,7 +166,7 @@ export function EventDetail() {
                     justifyContent: 'center',
                     position: 'relative'
                 }}>
-                    <HalftoneBackground color={colors.eventPrimaryDark} />
+                    <HalftoneBackground color={colors.eventPrimaryDark} pattern='waves' />
                     <div style={{
                         position: 'relative',
                         zIndex: 1,
@@ -195,7 +199,7 @@ export function EventDetail() {
                     justifyContent: 'center',
                     position: 'relative'
                 }}>
-                    <HalftoneBackground color={colors.eventPrimaryDark} />
+                    <HalftoneBackground color={colors.eventPrimaryDark} pattern='waves' />
                     <div style={{
                         position: 'relative',
                         zIndex: 1,
@@ -265,7 +269,7 @@ export function EventDetail() {
                 overflow: 'visible'
             }}>
                 {/* Fixed background */}
-                <HalftoneBackground color={colors.eventPrimaryDark} />
+                <HalftoneBackground color={colors.eventPrimaryDark} pattern='waves' />
 
                 {/* Back button */}
                 <button
@@ -494,9 +498,17 @@ export function EventDetail() {
                                 overflow: 'hidden'
                             }}>
                                 {pendingRequests.map((request, index) => {
+                                    // Extract user and profile from new API structure
                                     const user = request.user || {};
-                                    const userName = user.telegram_name || user.display_name || user.name || user.first_name || 'Пользователь';
-                                    const userAvatar = user.photo_url || user.avatar || user.image;
+                                    const profile = request.profile || {};
+                                    console.log(request)
+                                    
+                                    // Get display name from profile
+                                    const userName = profile.display_name || profileUser.telegram_name || profile.name || user.telegram_username || 'Пользователь';
+                                    
+                                    // Get avatar - prefer profile photos, then profile.user.photo_url
+                                    const userAvatar = (profile.photos && profile.photos[0]) || profileUser.photo_url || profile.photo_url || null;
+                                    
                                     const isProcessing = processingAction === request.id;
 
                                     return (
@@ -516,19 +528,22 @@ export function EventDetail() {
                                             {/* User Info - Clickable */}
                                             <div 
                                                 onClick={() => {
-                                                    // Map user data to profile format
+                                                    // Map user data to profile format from new API structure
+                                                    // All profile information is in request.user.profile
                                                     const userData = {
-                                                        display_name: user.telegram_name || user.display_name || user.name || user.first_name || 'Пользователь',
-                                                        name: user.name || user.display_name || user.telegram_name || user.first_name || 'Пользователь',
-                                                        age: user.age,
-                                                        photos: user.photos || (user.photo_url ? [user.photo_url] : []) || (user.avatar ? [user.avatar] : []) || (user.image ? [user.image] : []),
-                                                        bio: user.bio || '',
-                                                        interests: user.interests || [],
-                                                        custom_fields: user.customFields || user.custom_fields || []
+                                                        display_name: profile.display_name || profileUser.telegram_name || profile.name || 'Пользователь',
+                                                        name: profile.name || profile.display_name || profileUser.telegram_name || 'Пользователь',
+                                                        age: profile.age,
+                                                        photos: profile.photos || (profileUser.photo_url ? [profileUser.photo_url] : []) || [],
+                                                        bio: profile.bio || '',
+                                                        interests: profile.interests || [],
+                                                        custom_fields: profile.custom_fields || [],
+                                                        background_color: profile.background_color,
+                                                        telegram_username: user.telegram_username || profileUser.telegram_username || null,
                                                     };
                                                     
-                                                    // Use user ID for the route, fallback to a generated ID if not available
-                                                    const userId = user.id || user.user_id || user.telegram_id || `user-${Date.now()}`;
+                                                    // Use user ID from request.user.id
+                                                    const userId = user.id || profileUser.id || `user-${Date.now()}`;
                                                     navigate(`/user/${userId}`, { state: { userData } });
                                                 }}
                                                 style={{
@@ -624,7 +639,6 @@ export function EventDetail() {
                                                         fontStyle: 'italic',
                                                         cursor: isProcessing ? 'not-allowed' : 'pointer',
                                                         opacity: isProcessing ? 0.6 : 1,
-                                                        boxShadow: isProcessing ? 'none' : '4px 6px 0px rgba(0, 0, 0, 0.25)',
                                                         display: 'flex',
                                                         alignItems: 'center',
                                                         justifyContent: 'center',

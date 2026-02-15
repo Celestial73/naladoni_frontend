@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useCachedFetch } from './useCachedFetch.js';
 import { useDataCache } from '@/context/DataCacheProvider.jsx';
 import { eventsService } from '@/api/services/eventsService.js';
 import { eventActionsService } from '@/api/services/eventActionsService.js';
@@ -32,28 +31,73 @@ const transformEvent = (apiEvent) => {
  */
 export function useEventDetail(eventId) {
     const { eventsCache } = useDataCache();
+    const [event, setEvent] = useState(null);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
     const [isOwner, setIsOwner] = useState(false);
     const [pendingRequests, setPendingRequests] = useState([]);
     const [loadingRequests, setLoadingRequests] = useState(false);
     const [errorRequests, setErrorRequests] = useState(null);
     const [processingAction, setProcessingAction] = useState(null);
 
-    // Fetch event details
-    const {
-        data: event,
-        loading,
-        error,
-        refetch: refetchEvent
-    } = useCachedFetch({
-        fetchFn: (signal) => eventsService.getEvent(eventId, signal),
-        cacheKey: `event_${eventId}`, // Use event-specific cache key
-        cache: {}, // Events are not cached globally, fetch fresh each time
-        isCacheValid: () => false, // Always fetch fresh
-        updateCache: () => {}, // No global cache for individual events
-        errorMessage: 'Не удалось загрузить событие',
-        enabled: !!eventId,
-        transform: transformEvent
-    });
+    // Fetch event details - always fetch fresh, no caching
+    useEffect(() => {
+        if (!eventId) {
+            setEvent(null);
+            setLoading(false);
+            return;
+        }
+
+        const abortController = new AbortController();
+
+        const fetchEvent = async () => {
+            try {
+                setLoading(true);
+                setError(null);
+                const result = await eventsService.getEvent(eventId, abortController.signal);
+                
+                if (!abortController.signal.aborted) {
+                    const transformedEvent = transformEvent(result);
+                    setEvent(transformedEvent);
+                }
+            } catch (err) {
+                if (err.name !== 'AbortError' && err.name !== 'CanceledError') {
+                    if (!abortController.signal.aborted) {
+                        const errorMsg = err.response?.data?.message || err.message || 'Не удалось загрузить событие';
+                        setError(errorMsg);
+                    }
+                }
+            } finally {
+                if (!abortController.signal.aborted) {
+                    setLoading(false);
+                }
+            }
+        };
+
+        fetchEvent();
+
+        return () => {
+            abortController.abort();
+        };
+    }, [eventId]);
+
+    // Refetch function for manual refresh
+    const refetchEvent = async () => {
+        if (!eventId) return;
+        
+        try {
+            setLoading(true);
+            setError(null);
+            const result = await eventsService.getEvent(eventId);
+            const transformedEvent = transformEvent(result);
+            setEvent(transformedEvent);
+        } catch (err) {
+            const errorMsg = err.response?.data?.message || err.message || 'Не удалось загрузить событие';
+            setError(errorMsg);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     // Determine ownership when event is loaded
     useEffect(() => {
@@ -185,7 +229,8 @@ export function useEventDetail(eventId) {
         processingAction,
         refetchEvent,
         handleAcceptRequest,
-        handleRejectRequest
+        handleRejectRequest,
+        handleDeleteParticipant
     };
 }
 
