@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Calendar, MapPin, Users, Check, X as XIcon, Edit, Trash2, RefreshCw } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -10,8 +10,10 @@ import { ErrorMessage } from '@/components/ErrorMessage.jsx';
 import { ProfileDrawer } from '../Profile/ProfileDrawer.jsx';
 import { colors } from '@/constants/colors.js';
 import { eventsService } from '@/api/services/eventsService.js';
+import { eventActionsService } from '@/api/services/eventActionsService.js';
 import { useEventDetail } from '@/hooks/useEventDetail.js';
 import { useDataCache } from '@/context/DataCacheProvider.jsx';
+import { formatDateToDDMMYYYY } from '@/utils/dateFormatter.js';
 
 export function EventDetail() {
     const navigate = useNavigate();
@@ -33,6 +35,13 @@ export function EventDetail() {
         handleRejectRequest: handleRejectRequestFromHook,
         handleDeleteParticipant: handleDeleteParticipantFromHook
     } = useEventDetail(id);
+
+    // Log event when component mounts or event changes
+    useEffect(() => {
+        if (event) {
+            console.log('[EventDetail] Event data:', event);
+        }
+    }, [event]);
 
     // Wrapper to update cache when accepting/rejecting requests
     const handleAcceptRequest = async (eventActionId) => {
@@ -128,13 +137,41 @@ export function EventDetail() {
                 isOwner ? eventActionsService.getPendingLikesForEvent(event.id) : Promise.resolve([])
             ]);
             
+            // Transform participants from new API format (array of {profile, user}) to flat structure
+            let attendees = [];
+            if (eventData.participants && Array.isArray(eventData.participants)) {
+                attendees = eventData.participants.map((participant) => {
+                    const profile = participant.profile || {};
+                    const user = participant.user || {};
+                    return {
+                        display_name: profile.display_name || user.telegram_name || '',
+                        name: profile.display_name || user.telegram_name || '',
+                        age: profile.age,
+                        bio: profile.bio || '',
+                        photos: profile.photos || [],
+                        photo_url: profile.photos?.[0] || user.photo_url || null,
+                        interests: profile.interests || [],
+                        custom_fields: profile.custom_fields || [],
+                        background_color: profile.background_color,
+                        telegram_username: user.telegram_username || null,
+                        profile_id: profile._id || profile.id,
+                        user_id: user._id || user.id,
+                        user: user,
+                        profile: profile,
+                    };
+                });
+            } else if (eventData.attendees && Array.isArray(eventData.attendees)) {
+                // Fallback for old format
+                attendees = eventData.attendees;
+            }
+            
             const transformedEvent = {
                 id: eventData.id || eventData._id,
                 title: eventData.title,
                 date: formatDateToDDMMYYYY(eventData.date) || '',
                 location: eventData.location,
                 description: eventData.description,
-                attendees: eventData.participants || eventData.attendees || [],
+                attendees: attendees,
                 maxAttendees: eventData.capacity,
                 image: eventData.picture || eventData.image || eventData.imageUrl || eventData.creator_profile?.photo_url || null,
                 picture: eventData.picture || '',
@@ -457,7 +494,8 @@ export function EventDetail() {
                                         backgroundColor: colors.white,
                                         color: colors.eventPrimary,
                                         padding: '0.2em 0.6em',
-                                        borderRadius: '12px'
+                                        borderRadius: '12px',
+                                        textShadow: 'none'
                                     }}>
                                         {pendingRequests.length}
                                     </span>
@@ -501,7 +539,7 @@ export function EventDetail() {
                                     // Extract user and profile from new API structure
                                     const user = request.user || {};
                                     const profile = request.profile || {};
-                                    console.log(request)
+                                    const profileUser = profile.user || {};
                                     
                                     // Get display name from profile
                                     const userName = profile.display_name || profileUser.telegram_name || profile.name || user.telegram_username || 'Пользователь';
@@ -607,7 +645,7 @@ export function EventDetail() {
                                                     </div>
                                                     {request.text && (
                                                         <div style={{
-                                                            fontSize: '0.85em',
+                                                            fontSize: '0.9em',
                                                             color: colors.textLight,
                                                             lineHeight: '1.4',
                                                             fontStyle: 'italic'
@@ -628,28 +666,26 @@ export function EventDetail() {
                                                     disabled={isProcessing}
                                                     style={{
                                                         flex: 1,
-                                                        padding: '0.8em',
+                                                        padding: '0.6em',
                                                         backgroundColor: colors.eventPrimary,
                                                         color: colors.white,
                                                         border: 'none',
                                                         borderRadius: '14px',
-                                                        fontSize: '0.95em',
+                                                        fontSize: '0.9em',
                                                         fontWeight: '700',
                                                         fontFamily: "'Uni Sans', sans-serif",
                                                         fontStyle: 'italic',
-                                                        cursor: isProcessing ? 'not-allowed' : 'pointer',
-                                                        opacity: isProcessing ? 0.6 : 1,
                                                         display: 'flex',
                                                         alignItems: 'center',
                                                         justifyContent: 'center',
-                                                        gap: '0.5em',
+                                                        gap: '0.4em',
                                                         transition: 'transform 0.1s'
                                                     }}
                                                     onMouseDown={(e) => !isProcessing && (e.currentTarget.style.transform = 'scale(0.95)')}
                                                     onMouseUp={(e) => (e.currentTarget.style.transform = 'scale(1)')}
                                                     onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
                                                 >
-                                                    <Check size={18} />
+                                                    <Check size={16} />
                                                     ПРИНЯТЬ
                                                 </button>
                                                 <button
@@ -657,29 +693,26 @@ export function EventDetail() {
                                                     disabled={isProcessing}
                                                     style={{
                                                         flex: 1,
-                                                        padding: '0.8em',
+                                                        padding: '0.6em',
                                                         backgroundColor: colors.white,
                                                         color: '#c0392b',
                                                         border: `2px solid #c0392b`,
                                                         borderRadius: '14px',
-                                                        fontSize: '0.95em',
+                                                        fontSize: '0.9em',
                                                         fontWeight: '700',
                                                         fontFamily: "'Uni Sans', sans-serif",
                                                         fontStyle: 'italic',
-                                                        cursor: isProcessing ? 'not-allowed' : 'pointer',
-                                                        opacity: isProcessing ? 0.6 : 1,
-                                                        boxShadow: isProcessing ? 'none' : '4px 6px 0px rgba(0, 0, 0, 0.15)',
                                                         display: 'flex',
                                                         alignItems: 'center',
                                                         justifyContent: 'center',
-                                                        gap: '0.5em',
+                                                        gap: '0.4em',
                                                         transition: 'transform 0.1s'
                                                     }}
                                                     onMouseDown={(e) => !isProcessing && (e.currentTarget.style.transform = 'scale(0.95)')}
                                                     onMouseUp={(e) => (e.currentTarget.style.transform = 'scale(1)')}
                                                     onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
                                                 >
-                                                    <XIcon size={18} />
+                                                    <XIcon size={16} />
                                                     ОТКЛОНИТЬ
                                                 </button>
                                             </div>

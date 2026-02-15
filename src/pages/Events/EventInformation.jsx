@@ -25,6 +25,7 @@ export function EventInformation({
             interests: attendee.interests || [],
             custom_fields: attendee.customFields || attendee.custom_fields || [],
             background_color: attendee.background_color,
+            telegram_username: attendee.telegram_username || (attendee.user && typeof attendee.user === 'object' ? attendee.user.telegram_username : null) || null,
         };
         
         // Use attendee ID for the route - prioritize profile_id from API response
@@ -35,9 +36,18 @@ export function EventInformation({
     // Helper function to check if a participant is the event creator
     const isCreator = (participant) => {
         if (!event.creator_profile) return false;
-        const creatorId = event.creator_profile.id || event.creator_profile.user_id || event.creator_profile.user;
-        const participantId = participant.profile_id || participant.id || participant.user_id || participant.user;
-        return creatorId && participantId && creatorId === participantId;
+        // Get creator user ID - can be string or object
+        const creatorUser = event.creator_profile.user;
+        const creatorUserId = typeof creatorUser === 'object' ? (creatorUser._id || creatorUser.id) : creatorUser;
+        const creatorId = event.creator_profile.id || event.creator_profile.user_id || creatorUserId;
+        
+        // Get participant user ID - prioritize user_id from transformed structure
+        const participantUserId = participant.user_id || 
+                                  (typeof participant.user === 'object' ? (participant.user._id || participant.user.id) : participant.user) ||
+                                  participant.profile_id || 
+                                  participant.id;
+        
+        return creatorId && participantUserId && String(creatorId) === String(participantUserId);
     };
 
     // Default variant (non-card)

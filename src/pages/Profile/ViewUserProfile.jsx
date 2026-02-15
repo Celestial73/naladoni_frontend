@@ -79,6 +79,7 @@ export function ViewUserProfile() {
     const age = profileData?.age ?? null;
     const photos = profileData?.photos || (profileData?.photo_url ? [profileData.photo_url] : []) || [];
     const bio = profileData?.bio || '';
+    const telegram_username = profileData?.telegram_username || null;
     const showBio = profileData?.showBio !== false;
     const showInterests = profileData?.showInterests !== false;
 
@@ -241,7 +242,7 @@ export function ViewUserProfile() {
                         position: 'relative',
                         zIndex: 1
                     }}>
-                        <ProfileCarousel photos={photos} name={name} age={age} />
+                        <ProfileCarousel photos={photos} name={name} age={age} telegram_username={telegram_username} />
                     </div>
                 )}
 

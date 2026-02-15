@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import useEmblaCarousel from 'embla-carousel-react';
 import { colors } from '@/constants/colors.js';
 
-export function ProfileCarousel({ photos, name, age }) {
+export function ProfileCarousel({ photos, name, age, telegram_username }) {
     const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
+    const [copied, setCopied] = useState(false);
     const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
 
     useEffect(() => {
@@ -19,6 +20,18 @@ export function ProfileCarousel({ photos, name, age }) {
             emblaApi.off('select', onSelect);
         };
     }, [emblaApi]);
+
+    const handleCopyUsername = async () => {
+        if (!telegram_username) return;
+        
+        try {
+            await navigator.clipboard.writeText(`@${telegram_username}`);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        } catch (err) {
+            console.error('Failed to copy username:', err);
+        }
+    };
 
     return (
         <div style={{ position: 'relative', borderRadius: '47px  0 47px 0', boxShadow: '8px 10px 0px rgba(0, 0, 0, 0.4)' }}>
@@ -88,7 +101,7 @@ export function ProfileCarousel({ photos, name, age }) {
             {name && (
                 <div style={{
                     position: 'absolute',
-                    bottom: '5%',
+                    bottom: telegram_username ? '12%' : '5%',
                     left: '5%',
                     maxWidth: '70%',
                     zIndex: 10,
@@ -110,6 +123,30 @@ export function ProfileCarousel({ photos, name, age }) {
                             </>
                         );
                     })()}
+                </div>
+            )}
+
+            {/* Telegram Username */}
+            {telegram_username && (
+                <div 
+                    onClick={handleCopyUsername}
+                    style={{
+                        position: 'absolute',
+                        bottom: '5%',
+                        left: '5%',
+                        maxWidth: '70%',
+                        zIndex: 10,
+                        color: colors.white,
+                        fontSize: '1em',
+                        fontWeight: '500',
+                        textShadow: `0 1px 4px ${colors.shadowText}`,
+                        wordWrap: 'break-word',
+                        cursor: 'pointer',
+                        userSelect: 'none',
+                        transition: 'opacity 0.2s ease'
+                    }}
+                >
+                    {copied ? 'Скопировано!' : `@${telegram_username}`}
                 </div>
             )}
         </div>

@@ -29,6 +29,10 @@ export function Profile() {
     const age = profileData?.age ?? null;
     const photos = profileData?.photos || [];
     const bio = profileData?.bio || '';
+    const telegram_username = profileData?.telegram_username || 
+                               (profileData?.user && typeof profileData.user === 'object' ? profileData.user.telegram_username : null) ||
+                               auth.user?.telegram_username || 
+                               null;
     const showBio = profileData?.showBio !== false;
     const showInterests = profileData?.showInterests !== false;
 
@@ -177,7 +181,7 @@ export function Profile() {
                         position: 'relative',
                         zIndex: 1
                     }}>
-                        <ProfileCarousel photos={photos} name={name} age={age} />
+                        <ProfileCarousel photos={photos} name={name} age={age} telegram_username={telegram_username} />
                     </div>
                 )}
 

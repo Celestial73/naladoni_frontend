@@ -15,13 +15,41 @@ const SERVICE_NAME = 'feedService';
  * @returns {Object} Transformed event for UI
  */
 const transformEvent = (apiEvent) => {
+  // Transform participants from new API format (array of {profile, user}) to flat structure
+  let attendees = [];
+  if (apiEvent.participants && Array.isArray(apiEvent.participants)) {
+    attendees = apiEvent.participants.map((participant) => {
+      const profile = participant.profile || {};
+      const user = participant.user || {};
+      return {
+        display_name: profile.display_name || user.telegram_name || '',
+        name: profile.display_name || user.telegram_name || '',
+        age: profile.age,
+        bio: profile.bio || '',
+        photos: profile.photos || [],
+        photo_url: profile.photos?.[0] || user.photo_url || null,
+        interests: profile.interests || [],
+        custom_fields: profile.custom_fields || [],
+        background_color: profile.background_color,
+        telegram_username: user.telegram_username || null,
+        profile_id: profile._id || profile.id,
+        user_id: user._id || user.id,
+        user: user,
+        profile: profile,
+      };
+    });
+  } else if (apiEvent.attendees && Array.isArray(apiEvent.attendees)) {
+    // Fallback for old format
+    attendees = apiEvent.attendees;
+  }
+
   return {
     id: apiEvent.id || apiEvent._id,
     title: apiEvent.title,
     date: formatDateToDDMMYYYY(apiEvent.date) || '',
     location: apiEvent.location,
     description: apiEvent.description,
-    attendees: apiEvent.participants || apiEvent.attendees || [],
+    attendees: attendees,
     maxAttendees: apiEvent.capacity,
     picture: apiEvent.picture || null,
     image: apiEvent.picture || apiEvent.image || apiEvent.imageUrl || apiEvent.creator_profile?.photo_url || null,
