@@ -75,9 +75,9 @@ export function ViewUserProfile() {
     }, [userId, userDataFromState]);
 
     // Map backend response to component-friendly shapes
-    const name = profileData?.display_name || profileData?.name || '';
+    const name = profileData?.profile_name || profileData?.name || '';
     const age = profileData?.age ?? null;
-    const photos = profileData?.photos || (profileData?.photo_url ? [profileData.photo_url] : []) || [];
+    const images = profileData?.images || (profileData?.image_url ? [profileData.image_url] : []) || [];
     const bio = profileData?.bio || '';
     const telegram_username = profileData?.telegram_username || null;
     const showBio = profileData?.showBio !== false;
@@ -234,7 +234,7 @@ export function ViewUserProfile() {
                 )}
 
                 {/* Carousel Container */}
-                {photos.length > 0 && (
+                {images.length > 0 && (
                     <div style={{
                         width: '100%',
                         maxWidth: '70%',
@@ -242,12 +242,12 @@ export function ViewUserProfile() {
                         position: 'relative',
                         zIndex: 1
                     }}>
-                        <ProfileCarousel photos={photos} name={name} age={age} telegram_username={telegram_username} />
+                        <ProfileCarousel images={images} name={name} age={age} telegram_username={telegram_username} />
                     </div>
                 )}
 
-                {/* Fallback when no photos — show name/age as text */}
-                {photos.length === 0 && name && (
+                {/* Fallback when no images — show name/age as text */}
+                {images.length === 0 && name && (
                     <div style={{
                         position: 'relative',
                         zIndex: 1,

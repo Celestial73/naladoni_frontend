@@ -34,16 +34,16 @@ export function EditProfile() {
     const fileInputRef = useRef(null);
 
     const [saving, setSaving] = useState(false);
-    const [uploadingPhotos, setUploadingPhotos] = useState(false);
-    const [deletingPhotos, setDeletingPhotos] = useState(false);
+    const [uploadingImages, setUploadingImages] = useState(false);
+    const [deletingImages, setDeletingImages] = useState(false);
     const [error, setError] = useState(null);
     const [formDataInitialized, setFormDataInitialized] = useState(false);
 
     const [formData, setFormData] = useState(() => {
         const initialData = {
-            name: auth.user?.name || '',
+            name: auth.user?.telegram_name || '',
             age: '',
-            photos: [],
+            images: [],
             bio: '',
             gender: '',
             customFields: [],
@@ -67,9 +67,9 @@ export function EditProfile() {
                 console.log('[EditProfile] Loaded profile data:', profileData);
                 
                 const formDataUpdate = {
-                    name: profileData.display_name || profileData.name || auth.user?.name || '',
+                    name: profileData.profile_name || profileData.name || auth.user?.telegram_name || '',
                     age: profileData.age?.toString() || '',
-                    photos: profileData.photos || [],
+                    images: profileData.images || [],
                     bio: profileData.bio || '',
                     gender: profileData.gender || '',
                     customFields: (profileData.custom_fields || []).map((field, index) => ({
@@ -102,9 +102,9 @@ export function EditProfile() {
         setError(null);
     };
 
-    // --- Photo handlers ---
-    const handlePhotoAddClick = () => {
-        if (uploadingPhotos || deletingPhotos) return;
+    // --- Image handlers ---
+    const handleImageAddClick = () => {
+        if (uploadingImages || deletingImages) return;
         fileInputRef.current?.click();
     };
 
@@ -128,36 +128,36 @@ export function EditProfile() {
             }
         }
 
-        uploadPhotos(files);
+        uploadImages(files);
         e.target.value = '';
     };
 
-    const uploadPhotos = async (files) => {
-        setUploadingPhotos(true);
+    const uploadImages = async (files) => {
+        setUploadingImages(true);
         setError(null);
         try {
-            const response = await profileService.uploadPhotos(files);
-            setFormData(prev => ({ ...prev, photos: response.photos || [] }));
+            const response = await profileService.uploadImages(files);
+            setFormData(prev => ({ ...prev, images: response.images || [] }));
         } catch (err) {
-            setError(err.message || 'Не удалось загрузить фото');
+            setError(err.message || 'Не удалось загрузить изображение');
         } finally {
-            setUploadingPhotos(false);
+            setUploadingImages(false);
         }
     };
 
-    const handleDeletePhoto = async (index) => {
-        const photoUrl = formData.photos[index];
-        if (!photoUrl || deletingPhotos) return;
+    const handleDeleteImage = async (index) => {
+        const imageUrl = formData.images[index];
+        if (!imageUrl || deletingImages) return;
 
-        setDeletingPhotos(true);
+        setDeletingImages(true);
         setError(null);
         try {
-            const response = await profileService.deletePhotos([photoUrl]);
-            setFormData(prev => ({ ...prev, photos: response.photos || [] }));
+            const response = await profileService.deleteImages([imageUrl]);
+            setFormData(prev => ({ ...prev, images: response.images || [] }));
         } catch (err) {
-            setError(err.message || 'Не удалось удалить фото');
+            setError(err.message || 'Не удалось удалить изображение');
         } finally {
-            setDeletingPhotos(false);
+            setDeletingImages(false);
         }
     };
 
@@ -227,7 +227,7 @@ export function EditProfile() {
         setSaving(true);
         try {
             const payload = {
-                display_name: formData.name,
+                profile_name: formData.name,
                 age: formData.age ? parseInt(formData.age) : undefined,
                 bio: formData.bio,
                 gender: formData.gender,
@@ -266,7 +266,7 @@ export function EditProfile() {
         color: getInterestColor(index),
     }));
 
-    const isLoading = saving || uploadingPhotos || deletingPhotos;
+    const isLoading = saving || uploadingImages || deletingImages;
 
     // --- Loading state ---
     // Show loading screen if fetching or if formData hasn't been initialized from profileData yet
@@ -324,7 +324,7 @@ export function EditProfile() {
                     position="top-right"
                 />
 
-                {/* Hidden file input for photo upload */}
+                {/* Hidden file input for image upload */}
                 <input
                     ref={fileInputRef}
                     type="file"
@@ -488,7 +488,7 @@ export function EditProfile() {
                         zIndex: 1
                     }}>
                         <SectionTitle align="left" fontSize="3em">
-                            ФОТКИ:
+                            ИЗОБРАЖЕНИЯ:
                         </SectionTitle>
                     </div>
 
@@ -501,11 +501,11 @@ export function EditProfile() {
                         marginTop: '0.5em'
                     }}>
                         <PhotoEditRow
-                            photos={formData.photos}
-                            onAddClick={handlePhotoAddClick}
-                            onDeleteClick={handleDeletePhoto}
+                            images={formData.images}
+                            onAddClick={handleImageAddClick}
+                            onDeleteClick={handleDeleteImage}
                         />
-                        {uploadingPhotos && (
+                        {uploadingImages && (
                             <div style={{
                                 textAlign: 'center',
                                 marginTop: '0.5em',

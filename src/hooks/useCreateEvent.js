@@ -36,7 +36,7 @@ const transformToFormData = (event) => {
         location: event.location || '',
         maxAttendees: event.capacity?.toString() || '',
         description: event.description || '',
-        picture: event.picture || '',
+        picture: event.image || '',
     };
 };
 

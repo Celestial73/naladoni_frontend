@@ -144,12 +144,12 @@ export function EventDetail() {
                     const profile = participant.profile || {};
                     const user = participant.user || {};
                     return {
-                        display_name: profile.display_name || user.telegram_name || '',
-                        name: profile.display_name || user.telegram_name || '',
+                        profile_name: profile.profile_name || user.telegram_name || '',
+                        name: profile.profile_name || user.telegram_name || '',
                         age: profile.age,
                         bio: profile.bio || '',
-                        photos: profile.photos || [],
-                        photo_url: profile.photos?.[0] || user.photo_url || null,
+                        images: profile.images || [],
+                        image_url: profile.images?.[0] || user.image_url || null,
                         interests: profile.interests || [],
                         custom_fields: profile.custom_fields || [],
                         background_color: profile.background_color,
@@ -173,8 +173,8 @@ export function EventDetail() {
                 description: eventData.description,
                 attendees: attendees,
                 maxAttendees: eventData.capacity,
-                image: eventData.picture || eventData.image || eventData.imageUrl || eventData.creator_profile?.photo_url || null,
-                picture: eventData.picture || '',
+                image: eventData.image || eventData.imageUrl || eventData.creator_profile?.image_url || null,
+                picture: eventData.image || '',
                 creator_profile: eventData.creator_profile,
             };
             
@@ -542,10 +542,10 @@ export function EventDetail() {
                                     const profileUser = profile.user || {};
                                     
                                     // Get display name from profile
-                                    const userName = profile.display_name || profileUser.telegram_name || profile.name || user.telegram_username || 'Пользователь';
+                                    const userName = profile.profile_name || profileUser.telegram_name || profile.name || user.telegram_username || 'Пользователь';
                                     
-                                    // Get avatar - prefer profile photos, then profile.user.photo_url
-                                    const userAvatar = (profile.photos && profile.photos[0]) || profileUser.photo_url || profile.photo_url || null;
+                                    // Get avatar - prefer profile images, then profile.user.image_url
+                                    const userAvatar = (profile.images && profile.images[0]) || profileUser.image_url || profile.image_url || null;
                                     
                                     const isProcessing = processingAction === request.id;
 
@@ -569,10 +569,10 @@ export function EventDetail() {
                                                     // Map user data to profile format from new API structure
                                                     // All profile information is in request.user.profile
                                                     const userData = {
-                                                        display_name: profile.display_name || profileUser.telegram_name || profile.name || 'Пользователь',
-                                                        name: profile.name || profile.display_name || profileUser.telegram_name || 'Пользователь',
+                                                        profile_name: profile.profile_name || profileUser.telegram_name || profile.name || 'Пользователь',
+                                                        name: profile.name || profile.profile_name || profileUser.telegram_name || 'Пользователь',
                                                         age: profile.age,
-                                                        photos: profile.photos || (profileUser.photo_url ? [profileUser.photo_url] : []) || [],
+                                                        images: profile.images || (profileUser.image_url ? [profileUser.image_url] : []) || [],
                                                         bio: profile.bio || '',
                                                         interests: profile.interests || [],
                                                         custom_fields: profile.custom_fields || [],

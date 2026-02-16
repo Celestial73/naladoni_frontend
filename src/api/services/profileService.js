@@ -48,12 +48,12 @@ export const profileService = {
   },
 
   /**
-   * Upload photos to profile
+   * Upload images to profile
    * @param {File[]} files - Array of File objects to upload (max 3)
    * @param {AbortSignal} [signal] - Optional AbortSignal for request cancellation
-   * @returns {Promise<Object>} Updated profile data with photos array
+   * @returns {Promise<Object>} Updated profile data with images array
    */
-  uploadPhotos: async (files, signal) => {
+  uploadImages: async (files, signal) => {
     return baseServiceConfig.executeRequest(
       async (abortSignal) => {
         const formData = new FormData();
@@ -69,33 +69,33 @@ export const profileService = {
           },
         });
 
-        const response = await axiosPrivate.post('/profiles/me/photos', formData, config);
+        const response = await axiosPrivate.post('/profiles/me/images', formData, config);
         return response.data;
       },
       SERVICE_NAME,
-      'uploadPhotos',
+      'uploadImages',
       { signal }
     );
   },
 
   /**
-   * Delete photos from profile
-   * @param {string[]} photoUrls - Array of photo URLs to delete
+   * Delete images from profile
+   * @param {string[]} imageUrls - Array of image URLs to delete
    * @param {AbortSignal} [signal] - Optional AbortSignal for request cancellation
-   * @returns {Promise<Object>} Updated profile data with photos array
+   * @returns {Promise<Object>} Updated profile data with images array
    */
-  deletePhotos: async (photoUrls, signal) => {
+  deleteImages: async (imageUrls, signal) => {
     return baseServiceConfig.executeRequest(
       async (abortSignal) => {
         const config = baseServiceConfig.createRequestConfig(abortSignal);
-        const response = await axiosPrivate.delete('/profiles/me/photos', {
+        const response = await axiosPrivate.delete('/profiles/me/images', {
           ...config,
-          data: { photoUrls }
+          data: { image_urls: imageUrls }
         });
         return response.data;
       },
       SERVICE_NAME,
-      'deletePhotos',
+      'deleteImages',
       { signal }
     );
   },

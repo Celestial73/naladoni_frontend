@@ -17,10 +17,10 @@ export function EventInformation({
     const handleAttendeeClick = (attendee) => {
         // Map attendee data to profile format
         const userData = {
-            display_name: attendee.display_name || attendee.name,
-            name: attendee.name || attendee.display_name,
+            profile_name: attendee.profile_name || attendee.name,
+            name: attendee.name || attendee.profile_name,
             age: attendee.age,
-            photos: attendee.photos || (attendee.photo_url ? [attendee.photo_url] : []) || (attendee.image ? [attendee.image] : []),
+            images: attendee.images || (attendee.image_url ? [attendee.image_url] : []) || (attendee.image ? [attendee.image] : []),
             bio: attendee.bio || '',
             interests: attendee.interests || [],
             custom_fields: attendee.customFields || attendee.custom_fields || [],
@@ -117,7 +117,7 @@ export function EventInformation({
                                                      attendee.telegram_id ||
                                                      null;
                                 const participantIsCreator = isCreator(attendee);
-                                const attendeePhoto = attendee.profile?.photo_url || attendee.photo_url || attendee.image || attendee.photos?.[0];
+                                const attendeePhoto = attendee.profile?.image_url || attendee.image_url || attendee.image || attendee.images?.[0];
                                 return (
                                     <div
                                         key={participantId}
@@ -133,7 +133,7 @@ export function EventInformation({
                                             {attendeePhoto ? (
                                                 <img
                                                     src={attendeePhoto}
-                                                    alt={attendee.display_name || attendee.name}
+                                                    alt={attendee.profile_name || attendee.name}
                                                     style={{
                                                         width: 56,
                                                         height: 56,
@@ -153,7 +153,7 @@ export function EventInformation({
                                                     color: '#999',
                                                     fontSize: 20
                                                 }}>
-                                                    {(attendee.display_name || attendee.name || '?')[0].toUpperCase()}
+                                                    {(attendee.profile_name || attendee.name || '?')[0].toUpperCase()}
                                                 </div>
                                             )}
                                             {isOwner && onDeleteParticipant && !participantIsCreator && participantId && (
@@ -184,7 +184,7 @@ export function EventInformation({
                                             )}
                                         </div>
                                         <div style={{ fontSize: 10, marginTop: 4, maxWidth: 48, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                            {attendee.display_name || attendee.name}
+                                            {attendee.profile_name || attendee.name}
                                         </div>
                                     </div>
                                 );

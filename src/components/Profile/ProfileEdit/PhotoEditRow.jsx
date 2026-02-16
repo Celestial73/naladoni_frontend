@@ -1,12 +1,12 @@
 import { Plus, X } from 'lucide-react';
 import { colors } from '@/constants/colors.js';
 
-const MAX_PHOTOS = 3;
-const CARD_WIDTH = `calc((100% - ${MAX_PHOTOS - 1} * 2vw) / ${MAX_PHOTOS})`;
+const MAX_IMAGES = 3;
+const CARD_WIDTH = `calc((100% - ${MAX_IMAGES - 1} * 2vw) / ${MAX_IMAGES})`;
 
-export function PhotoEditRow({ photos = [], onAddClick, onDeleteClick }) {
-    const items = photos.slice(0, MAX_PHOTOS);
-    const showAddButton = items.length < MAX_PHOTOS;
+export function PhotoEditRow({ images = [], onAddClick, onDeleteClick }) {
+    const items = images.slice(0, MAX_IMAGES);
+    const showAddButton = items.length < MAX_IMAGES;
 
     return (
         <div style={{
@@ -15,7 +15,7 @@ export function PhotoEditRow({ photos = [], onAddClick, onDeleteClick }) {
             width: '100%',
             justifyContent: 'center'
         }}>
-            {items.map((photo, index) => (
+            {items.map((image, index) => (
                 <div
                     key={index}
                     style={{
@@ -29,8 +29,8 @@ export function PhotoEditRow({ photos = [], onAddClick, onDeleteClick }) {
                     }}
                 >
                     <img
-                        src={photo}
-                        alt={`Photo ${index + 1}`}
+                        src={image}
+                        alt={`Image ${index + 1}`}
                         style={{
                             width: '100%',
                             height: '100%',

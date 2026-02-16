@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import useEmblaCarousel from 'embla-carousel-react';
 import { colors } from '@/constants/colors.js';
 
-export function ProfileCarousel({ photos, name, age, telegram_username }) {
-    const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
+export function ProfileCarousel({ images, name, age, telegram_username }) {
+    const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [copied, setCopied] = useState(false);
     const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
 
@@ -11,7 +11,7 @@ export function ProfileCarousel({ photos, name, age, telegram_username }) {
         if (!emblaApi) return;
 
         const onSelect = () => {
-            setCurrentPhotoIndex(emblaApi.selectedScrollSnap());
+            setCurrentImageIndex(emblaApi.selectedScrollSnap());
         };
 
         emblaApi.on('select', onSelect);
@@ -36,7 +36,7 @@ export function ProfileCarousel({ photos, name, age, telegram_username }) {
     return (
         <div style={{ position: 'relative', borderRadius: '47px  0 47px 0', boxShadow: '8px 10px 0px rgba(0, 0, 0, 0.4)' }}>
             {/* Indicator Lines at Top */}
-            {photos.length > 1 && (
+            {images.length > 1 && (
                 <div style={{
                     position: 'absolute',
                     top: '2%',
@@ -46,16 +46,16 @@ export function ProfileCarousel({ photos, name, age, telegram_username }) {
                     justifyContent: 'center',
                     gap: '0.5em',
                     zIndex: 10,
-                    width: `${Math.min(photos.length * 15, 60)}%`,
+                    width: `${Math.min(images.length * 15, 60)}%`,
                 }}>
-                    {photos.map((_, index) => (
+                    {images.map((_, index) => (
                         <div
                             key={index}
                             style={{
                                 flex: 1,
                                 height: '3px',
                                 borderRadius: '2px',
-                                background: index === currentPhotoIndex ? colors.white : colors.whiteTransparent,
+                                background: index === currentImageIndex ? colors.white : colors.whiteTransparent,
                                 transition: 'background 0.3s ease'
                             }}
                         />
@@ -73,7 +73,7 @@ export function ProfileCarousel({ photos, name, age, telegram_username }) {
                 }}
             >
                 <div className="embla__container" style={{ display: 'flex' }}>
-                    {photos.map((photo, index) => (
+                    {images.map((image, index) => (
                         <div
                             key={index}
                             className="embla__slide"
@@ -83,7 +83,7 @@ export function ProfileCarousel({ photos, name, age, telegram_username }) {
                             }}
                         >
                             <img
-                                src={photo}
+                                src={image}
                                 alt={`Profile ${index + 1}`}
                                 style={{
                                     width: '100%',

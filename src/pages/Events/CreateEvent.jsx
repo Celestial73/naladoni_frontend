@@ -93,8 +93,8 @@ export function CreateEvent() {
   
   const [selectedFile, setSelectedFile] = useState(null);
   const [filePreview, setFilePreview] = useState(null);
-  const [uploadingPicture, setUploadingPicture] = useState(false);
-  const [deletingPicture, setDeletingPicture] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [deletingImage, setDeletingImage] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -113,9 +113,9 @@ export function CreateEvent() {
     setError(null);
   };
 
-  // --- Picture handlers ---
-  const handlePictureClick = () => {
-    if (uploadingPicture || deletingPicture) return;
+  // --- Image handlers ---
+  const handleImageClick = () => {
+    if (uploadingImage || deletingImage) return;
     fileInputRef.current?.click();
   };
 
@@ -146,13 +146,13 @@ export function CreateEvent() {
     e.target.value = '';
   };
 
-  const uploadPictureForEvent = async (eventId) => {
+  const uploadImageForEvent = async (eventId) => {
     if (!selectedFile) return;
-    setUploadingPicture(true);
+    setUploadingImage(true);
     setError(null);
     try {
-      const updatedEvent = await eventsService.uploadEventPicture(eventId, selectedFile);
-      setFormData(prev => ({ ...prev, picture: updatedEvent.picture || '' }));
+      const updatedEvent = await eventsService.uploadEventImage(eventId, selectedFile);
+      setFormData(prev => ({ ...prev, picture: updatedEvent.image || '' }));
       setSelectedFile(null);
       if (filePreview) {
         URL.revokeObjectURL(filePreview);
@@ -163,21 +163,21 @@ export function CreateEvent() {
       setError(err.message || 'Не удалось загрузить изображение');
       return null;
     } finally {
-      setUploadingPicture(false);
+      setUploadingImage(false);
     }
   };
 
-  const handleDeletePicture = async () => {
-    if (!isEditMode || deletingPicture) return;
-    setDeletingPicture(true);
+  const handleDeleteImage = async () => {
+    if (!isEditMode || deletingImage) return;
+    setDeletingImage(true);
     setError(null);
     try {
-      const updatedEvent = await eventsService.deleteEventPicture(id);
-      setFormData(prev => ({ ...prev, picture: updatedEvent.picture || '' }));
+      const updatedEvent = await eventsService.deleteEventImage(id);
+      setFormData(prev => ({ ...prev, picture: updatedEvent.image || '' }));
     } catch (err) {
       setError(err.message || 'Не удалось удалить изображение');
     } finally {
-      setDeletingPicture(false);
+      setDeletingImage(false);
     }
   };
 
@@ -250,16 +250,16 @@ export function CreateEvent() {
         createdEvent = await eventsService.createEvent(payload);
       }
 
-      // Upload picture if a file was selected
+      // Upload image if a file was selected
       const eventId = isEditMode ? id : (createdEvent?.id || createdEvent?._id);
       if (selectedFile && eventId) {
-        setUploadingPicture(true);
+        setUploadingImage(true);
         try {
-          await eventsService.uploadEventPicture(eventId, selectedFile);
-        } catch (pictureErr) {
-          console.warn('Event saved but picture upload failed:', pictureErr.message);
+          await eventsService.uploadEventImage(eventId, selectedFile);
+        } catch (imageErr) {
+          console.warn('Event saved but image upload failed:', imageErr.message);
         } finally {
-          setUploadingPicture(false);
+          setUploadingImage(false);
         }
       }
 
@@ -274,7 +274,7 @@ export function CreateEvent() {
     }
   };
 
-  const isLoading = loading || uploadingPicture || deletingPicture;
+  const isLoading = loading || uploadingImage || deletingImage;
 
   // Loading state
   if (fetching) {
@@ -343,7 +343,7 @@ export function CreateEvent() {
           position="top-right"
         />
 
-        {/* Hidden file input for picture upload */}
+        {/* Hidden file input for image upload */}
         <input
           ref={fileInputRef}
           type="file"
@@ -589,7 +589,7 @@ export function CreateEvent() {
           </div>
         </div>
 
-        {/* Picture section */}
+        {/* Image section */}
         <div style={{
           width: '90%',
           marginTop: '1.5em',
@@ -638,8 +638,8 @@ export function CreateEvent() {
                 />
                 <button
                   type="button"
-                  onClick={filePreview ? handleRemoveSelectedFile : handleDeletePicture}
-                  disabled={deletingPicture || uploadingPicture}
+                  onClick={filePreview ? handleRemoveSelectedFile : handleDeleteImage}
+                  disabled={deletingImage || uploadingImage}
                   style={{
                     position: 'absolute',
                     top: '8px',
@@ -652,13 +652,13 @@ export function CreateEvent() {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    cursor: (deletingPicture || uploadingPicture) ? 'not-allowed' : 'pointer',
-                    opacity: (deletingPicture || uploadingPicture) ? 0.5 : 1
+                    cursor: (deletingImage || uploadingImage) ? 'not-allowed' : 'pointer',
+                    opacity: (deletingImage || uploadingImage) ? 0.5 : 1
                   }}
                 >
                   <X size={18} color={colors.white} />
                 </button>
-                {(uploadingPicture || deletingPicture) && (
+                {(uploadingImage || deletingImage) && (
                   <div style={{
                     position: 'absolute',
                     inset: 0,
@@ -674,8 +674,8 @@ export function CreateEvent() {
             ) : (
               <button
                 type="button"
-                onClick={handlePictureClick}
-                disabled={uploadingPicture || deletingPicture}
+                onClick={handleImageClick}
+                disabled={uploadingImage || deletingImage}
                 style={{
                   width: '100%',
                   maxWidth: '300px',
@@ -688,10 +688,10 @@ export function CreateEvent() {
                   flexDirection: 'column',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  cursor: (uploadingPicture || deletingPicture) ? 'not-allowed' : 'pointer',
+                  cursor: (uploadingImage || deletingImage) ? 'not-allowed' : 'pointer',
                   boxShadow: '4px 6px 0px rgba(0, 0, 0, 0.25)',
                   gap: '0.5em',
-                  opacity: (uploadingPicture || deletingPicture) ? 0.5 : 1
+                  opacity: (uploadingImage || deletingImage) ? 0.5 : 1
                 }}
               >
                 <Upload size={36} color={colors.white} />
@@ -706,7 +706,7 @@ export function CreateEvent() {
                 </span>
               </button>
             )}
-            {uploadingPicture && (
+            {uploadingImage && (
               <div style={{
                 textAlign: 'center',
                 marginTop: '0.5em',

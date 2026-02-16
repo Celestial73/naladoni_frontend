@@ -24,10 +24,10 @@ export function Profile() {
     const { auth } = useAuth();
     const { profileData, loading, error } = useProfile();
 
-    // Map backend response to component-frie1ndly shapes
-    const name = profileData?.display_name || profileData?.name || auth.user?.name || '';
+    // Map backend response to component-friendly shapes
+    const name = profileData?.profile_name || profileData?.name || auth.user?.telegram_name || '';
     const age = profileData?.age ?? null;
-    const photos = profileData?.photos || [];
+    const images = profileData?.images || [];
     const bio = profileData?.bio || '';
     const telegram_username = profileData?.telegram_username || 
                                (profileData?.user && typeof profileData.user === 'object' ? profileData.user.telegram_username : null) ||
@@ -173,7 +173,7 @@ export function Profile() {
                 )}
 
                 {/* Carousel Container */}
-                {photos.length > 0 && (
+                {images.length > 0 && (
                     <div style={{
                         width: '100%',
                         maxWidth: '70%',
@@ -181,12 +181,12 @@ export function Profile() {
                         position: 'relative',
                         zIndex: 1
                     }}>
-                        <ProfileCarousel photos={photos} name={name} age={age} telegram_username={telegram_username} />
+                        <ProfileCarousel images={images} name={name} age={age} telegram_username={telegram_username} />
                     </div>
                 )}
 
-                {/* Fallback when no photos — show name/age as text */}
-                {photos.length === 0 && name && (
+                {/* Fallback when no images — show name/age as text */}
+                {images.length === 0 && name && (
                     <div style={{
                         position: 'relative',
                         zIndex: 1,

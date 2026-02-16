@@ -11,12 +11,12 @@ import {
 
 export function ProfileDrawer({ profile, onClose }) {
   // Normalize profile data to handle both API format and transformed format
-  const displayName = profile.display_name || profile.name || '';
+  const displayName = profile.profile_name || profile.name || '';
   const age = profile.age;
   const bio = profile.bio;
   const gender = profile.gender;
-  const photoUrl = profile.photo_url || profile.photoUrl;
-  const photos = profile.photos || (photoUrl ? [photoUrl] : []);
+  const imageUrl = profile.image_url || profile.imageUrl;
+  const images = profile.images || (imageUrl ? [imageUrl] : []);
   const interests = profile.interests || [];
   const customFields = profile.custom_fields || profile.customFields || [];
   const showBio = profile.showBio !== false; // Default to true if not specified
@@ -26,17 +26,17 @@ export function ProfileDrawer({ profile, onClose }) {
   const work = profile.work;
   const education = profile.education;
 
-  const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
-  const nextPhoto = () => {
-    setCurrentPhotoIndex((prev) =>
-      prev === photos.length - 1 ? 0 : prev + 1
+  const nextImage = () => {
+    setCurrentImageIndex((prev) =>
+      prev === images.length - 1 ? 0 : prev + 1
     );
   };
 
-  const prevPhoto = () => {
-    setCurrentPhotoIndex((prev) =>
-      prev === 0 ? photos.length - 1 : prev - 1
+  const prevImage = () => {
+    setCurrentImageIndex((prev) =>
+      prev === 0 ? images.length - 1 : prev - 1
     );
   };
 
@@ -95,20 +95,20 @@ export function ProfileDrawer({ profile, onClose }) {
         {/* Scrollable Content */}
         <div style={{ flex: 1, overflowY: 'auto' }}>
           <List>
-            {/* Photo Section */}
-            {photos.length > 0 && (
+            {/* Image Section */}
+            {images.length > 0 && (
               <div style={{ position: 'relative', height: 400 }}>
                 <img
-                  src={photos[currentPhotoIndex]}
+                  src={images[currentImageIndex]}
                   alt={displayName}
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                 />
 
-                {/* Photo Navigation */}
-                {photos.length > 1 && (
+                {/* Image Navigation */}
+                {images.length > 1 && (
                 <>
                   <button
-                    onClick={prevPhoto}
+                    onClick={prevImage}
                     style={{
                       position: 'absolute',
                       left: 12,
@@ -130,7 +130,7 @@ export function ProfileDrawer({ profile, onClose }) {
                     <ChevronLeft size={24} />
                   </button>
                   <button
-                    onClick={nextPhoto}
+                    onClick={nextImage}
                     style={{
                       position: 'absolute',
                       right: 12,
@@ -152,17 +152,17 @@ export function ProfileDrawer({ profile, onClose }) {
                     <ChevronRight size={24} />
                   </button>
 
-                  {/* Photo Indicators */}
+                  {/* Image Indicators */}
                   <div style={{ position: 'absolute', top: 12, left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: 4 }}>
-                    {photos.map((_, index) => (
+                    {images.map((_, index) => (
                       <div
                         key={index}
                         style={{
                           height: 4,
                           borderRadius: 99,
                           transition: 'all 0.3s',
-                          width: index === currentPhotoIndex ? 32 : 16,
-                          backgroundColor: index === currentPhotoIndex ? 'white' : 'rgba(255,255,255,0.5)'
+                          width: index === currentImageIndex ? 32 : 16,
+                          backgroundColor: index === currentImageIndex ? 'white' : 'rgba(255,255,255,0.5)'
                         }}
                       />
                     ))}

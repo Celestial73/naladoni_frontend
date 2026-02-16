@@ -22,12 +22,12 @@ const transformEvent = (apiEvent) => {
       const profile = participant.profile || {};
       const user = participant.user || {};
       return {
-        display_name: profile.display_name || user.telegram_name || '',
-        name: profile.display_name || user.telegram_name || '',
+        profile_name: profile.profile_name || user.telegram_name || '',
+        name: profile.profile_name || user.telegram_name || '',
         age: profile.age,
         bio: profile.bio || '',
-        photos: profile.photos || [],
-        photo_url: profile.photos?.[0] || user.photo_url || null,
+        images: profile.images || [],
+        image_url: profile.images?.[0] || user.image_url || null,
         interests: profile.interests || [],
         custom_fields: profile.custom_fields || [],
         background_color: profile.background_color,
@@ -51,8 +51,8 @@ const transformEvent = (apiEvent) => {
     description: apiEvent.description,
     attendees: attendees,
     maxAttendees: apiEvent.capacity,
-    picture: apiEvent.picture || null,
-    image: apiEvent.picture || apiEvent.image || apiEvent.imageUrl || apiEvent.creator_profile?.photo_url || null,
+    picture: apiEvent.image || null,
+    image: apiEvent.image || apiEvent.imageUrl || apiEvent.creator_profile?.image_url || null,
     creator_profile: apiEvent.creator_profile,
     town: apiEvent.town,
   };

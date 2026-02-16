@@ -22,12 +22,12 @@ const transformEvent = (apiEvent) => {
       const profile = participant.profile || {};
       const user = participant.user || {};
       return {
-        display_name: profile.display_name || user.telegram_name || '',
-        name: profile.display_name || user.telegram_name || '',
+        profile_name: profile.profile_name || user.telegram_name || '',
+        name: profile.profile_name || user.telegram_name || '',
         age: profile.age,
         bio: profile.bio || '',
-        photos: profile.photos || [],
-        photo_url: profile.photos?.[0] || user.photo_url || null,
+        images: profile.images || [],
+        image_url: profile.images?.[0] || user.image_url || null,
         interests: profile.interests || [],
         custom_fields: profile.custom_fields || [],
         background_color: profile.background_color,
@@ -51,8 +51,8 @@ const transformEvent = (apiEvent) => {
     description: apiEvent.description,
     attendees: attendees,
     maxAttendees: apiEvent.capacity,
-    image: apiEvent.picture || apiEvent.image || apiEvent.imageUrl || apiEvent.creator_profile?.photos?.[0] || apiEvent.creator_profile?.photo_url || null,
-    picture: apiEvent.picture || '',
+    image: apiEvent.image || apiEvent.imageUrl || apiEvent.creator_profile?.images?.[0] || apiEvent.creator_profile?.image_url || null,
+    picture: apiEvent.image || '',
     creator_profile: apiEvent.creator_profile,
   };
 };
@@ -212,13 +212,13 @@ export const eventsService = {
   },
 
   /**
-   * Upload a picture for an event
+   * Upload an image for an event
    * @param {string|number} eventId - Event ID
    * @param {File} file - Image file to upload
    * @param {AbortSignal} [signal] - Optional AbortSignal for request cancellation
-   * @returns {Promise<Object>} Updated event with picture URL populated
+   * @returns {Promise<Object>} Updated event with image URL populated
    */
-  uploadEventPicture: async (eventId, file, signal) => {
+  uploadEventImage: async (eventId, file, signal) => {
     return baseServiceConfig.executeRequest(
       async (abortSignal) => {
         const formData = new FormData();
@@ -230,30 +230,30 @@ export const eventsService = {
           },
         });
 
-        const response = await axiosPrivate.post(`/events/me/${eventId}/picture`, formData, config);
+        const response = await axiosPrivate.post(`/events/me/${eventId}/image`, formData, config);
         return response.data;
       },
       SERVICE_NAME,
-      'uploadEventPicture',
+      'uploadEventImage',
       { signal }
     );
   },
 
   /**
-   * Delete the picture for an event
+   * Delete the image for an event
    * @param {string|number} eventId - Event ID
    * @param {AbortSignal} [signal] - Optional AbortSignal for request cancellation
-   * @returns {Promise<Object>} Updated event with picture cleared
+   * @returns {Promise<Object>} Updated event with image cleared
    */
-  deleteEventPicture: async (eventId, signal) => {
+  deleteEventImage: async (eventId, signal) => {
     return baseServiceConfig.executeRequest(
       async (abortSignal) => {
         const config = baseServiceConfig.createRequestConfig(abortSignal);
-        const response = await axiosPrivate.delete(`/events/me/${eventId}/picture`, config);
+        const response = await axiosPrivate.delete(`/events/me/${eventId}/image`, config);
         return response.data;
       },
       SERVICE_NAME,
-      'deleteEventPicture',
+      'deleteEventImage',
       { signal }
     );
   },

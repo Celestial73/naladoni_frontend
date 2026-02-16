@@ -121,9 +121,9 @@ export function EventList({
                         flexShrink: 0,
                         backgroundColor: colors.backgroundGrey
                     }}>
-                        {event.image || event.picture || event.creator_profile?.photos?.[0] ? (
+                        {event.image || event.picture || event.creator_profile?.images?.[0] ? (
                             <img
-                                src={event.image || event.picture || event.creator_profile?.photos?.[0]}
+                                src={event.image || event.picture || event.creator_profile?.images?.[0]}
                                 alt={event.title}
                                 style={{
                                     width: '100%',
@@ -188,7 +188,7 @@ export function EventList({
                                 <MapPin size={14} color={colors.eventPrimary} />
                                 <span>
                                     {event.location}
-                                    {event.creator_profile?.display_name && ` • ${event.creator_profile.display_name}`}
+                                    {event.creator_profile?.profile_name && ` • ${event.creator_profile.profile_name}`}
                                 </span>
                             </div>
                         )}
