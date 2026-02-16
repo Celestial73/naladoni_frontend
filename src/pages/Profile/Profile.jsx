@@ -24,7 +24,7 @@ export function Profile() {
     const { auth } = useAuth();
     const { profileData, loading, error } = useProfile();
 
-    // Map backend response to component-friendly shapes
+    // Map backend response to component-frie1ndly shapes
     const name = profileData?.display_name || profileData?.name || auth.user?.name || '';
     const age = profileData?.age ?? null;
     const photos = profileData?.photos || [];
