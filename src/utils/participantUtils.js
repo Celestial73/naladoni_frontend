@@ -3,7 +3,7 @@
  * Centralized functions for extracting and working with participant data
  * 
  * API Structure:
- * - participants: Array of {profile, user}
+ * - participants: Arrrrrrrrrrrrrray of {profile, user}
  * - profile: Always present (required)
  * - user: Optional, only present when requester is event owner or using /events/me endpoint
  */
