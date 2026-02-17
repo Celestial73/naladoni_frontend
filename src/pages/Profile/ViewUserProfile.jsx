@@ -75,9 +75,9 @@ export function ViewUserProfile() {
     }, [userId, userDataFromState]);
 
     // Map backend response to component-friendly shapes
-    const name = profileData?.profile_name || profileData?.name || '';
+    const profile_name = profileData?.profile_name || '';
     const age = profileData?.age ?? null;
-    const images = profileData?.images || (profileData?.image_url ? [profileData.image_url] : []) || [];
+    const images = profileData?.images || (profileData?.image_url ? [profileData.image_url] : []);
     const bio = profileData?.bio || '';
     const telegram_username = profileData?.telegram_username || null;
     const showBio = profileData?.showBio !== false;
@@ -242,12 +242,12 @@ export function ViewUserProfile() {
                         position: 'relative',
                         zIndex: 1
                     }}>
-                        <ProfileCarousel images={images} name={name} age={age} telegram_username={telegram_username} />
+                        <ProfileCarousel images={images} profile_name={profile_name} age={age} telegram_username={telegram_username} />
                     </div>
                 )}
 
-                {/* Fallback when no images — show name/age as text */}
-                {images.length === 0 && name && (
+                {/* Fallback when no images — show profile_name/age as text */}
+                {images.length === 0 && profile_name && (
                     <div style={{
                         position: 'relative',
                         zIndex: 1,
@@ -260,7 +260,7 @@ export function ViewUserProfile() {
                             fontWeight: '700',
                             textShadow: `0 1px 4px ${colors.shadowText}`
                         }}>
-                            {name}{age != null ? `, ${age}` : ''}
+                            {profile_name}{age != null ? `, ${age}` : ''}
                         </div>
                     </div>
                 )}

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, MapPin, X } from "lucide-react";
 import { colors } from '@/constants/colors.js';
+import { getParticipantId, getParticipantName, getParticipantImage, getParticipantUserId } from '@/utils/participantUtils.js';
 
 /**
  * EventCard Component
@@ -24,42 +25,40 @@ export function EventCard({
     isOwner = false,
 }) {
     const navigate = useNavigate();
-    const attendeesCount = event.attendees?.length ?? event.maxAttendees ?? 0;
+    const attendeesCount = event.attendees?.length ?? event.capacity ?? 0;
     
     // Handle attendee click - navigate to user profile page
     const handleAttendeeClick = (attendee) => {
         // Map attendee data to profile format
         const userData = {
-            profile_name: attendee.profile_name || attendee.name,
-            name: attendee.name || attendee.profile_name,
+            profile_name: attendee.profile_name || '',
             age: attendee.age,
             images: attendee.images || (attendee.image_url ? [attendee.image_url] : []) || (attendee.image ? [attendee.image] : []),
             bio: attendee.bio || '',
             interests: attendee.interests || [],
-            custom_fields: attendee.customFields || attendee.custom_fields || [],
+            custom_fields: attendee.custom_fields || [],
             background_color: attendee.background_color,
             telegram_username: attendee.telegram_username || (attendee.user && typeof attendee.user === 'object' ? attendee.user.telegram_username : null) || null,
         };
         
-        // Use attendee ID for the route - prioritize profile_id from API response
-        const userId = attendee.profile_id || attendee.id || attendee.user_id || `user-${Date.now()}`;
+        // Use profile_id for navigation (profile is always present, user may not be)
+        const userId = getParticipantId(attendee) || `user-${Date.now()}`;
         navigate(`/user/${userId}`, { state: { userData } });
     };
     
     // Helper function to check if a participant is the event creator
     const isCreator = (participant) => {
         if (!event.creator_profile) return false;
+        
         // Get creator user ID - can be string or object
         const creatorUser = event.creator_profile.user;
         const creatorUserId = typeof creatorUser === 'object' ? (creatorUser._id || creatorUser.id) : creatorUser;
         const creatorId = event.creator_profile.id || event.creator_profile.user_id || creatorUserId;
         
-        // Get participant user ID - prioritize user_id from transformed structure
-        const participantUserId = participant.user_id || 
-                                  (typeof participant.user === 'object' ? (participant.user._id || participant.user.id) : participant.user) ||
-                                  participant.profile_id || 
-                                  participant.id;
+        // Get participant user ID using utility function
+        const participantUserId = getParticipantUserId(participant);
         
+        // Compare user IDs (not profile IDs) since creator is identified by user
         return creatorId && participantUserId && String(creatorId) === String(participantUserId);
     };
 
@@ -231,16 +230,10 @@ export function EventCard({
                                 marginBottom: event.attendees.length > 5 ? 8 : 0
                             }}>
                                 {(isAttendeesExpanded ? event.attendees : event.attendees.slice(0, 5)).map((attendee) => {
-                                    // Extract participant ID - prioritize profile_id from API response
-                                    const participantId = attendee.profile_id ||
-                                                         attendee.user_id || 
-                                                         attendee.participant_id ||
-                                                         (typeof attendee.user === 'object' ? attendee.user?.id || attendee.user?.user_id : null) ||
-                                                         (typeof attendee.user === 'string' || typeof attendee.user === 'number' ? attendee.user : null) ||
-                                                         attendee.telegram_id ||
-                                                         null;
+                                    // Use utility function to extract participant ID (profile_id is primary identifier)
+                                    const participantId = getParticipantId(attendee);
                                     const participantIsCreator = isCreator(attendee);
-                                    const attendeePhoto = attendee.profile?.image_url || attendee.image_url || attendee.image || attendee.images?.[0];
+                                    const attendeePhoto = getParticipantImage(attendee);
                                     return (
                                         <div
                                             key={participantId}
@@ -269,7 +262,7 @@ export function EventCard({
                                                     {attendeePhoto ? (
                                                         <img
                                                             src={attendeePhoto}
-                                                            alt={attendee.profile_name || attendee.name}
+                                                            alt={getParticipantName(attendee)}
                                                             style={{
                                                                 width: '100%',
                                                                 height: '100%',
@@ -287,7 +280,7 @@ export function EventCard({
                                                             color: '#999',
                                                             fontSize: 18
                                                         }}>
-                                                            {(attendee.profile_name || attendee.name || '?')[0].toUpperCase()}
+                                                            {(getParticipantName(attendee) || '?')[0].toUpperCase()}
                                                         </div>
                                                     )}
                                                 </div>
@@ -295,6 +288,7 @@ export function EventCard({
                                                     <button
                                                         onClick={(e) => {
                                                             e.stopPropagation();
+                                                            // participantId is profile_id, which is the correct ID for deletion
                                                             onDeleteParticipant(participantId);
                                                         }}
                                                         style={{

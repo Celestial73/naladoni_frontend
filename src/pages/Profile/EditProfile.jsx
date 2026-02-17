@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Page } from '@/components/Layout/Page.jsx';
 import { HalftoneBackground } from '@/components/HalftoneBackground.jsx';
 import { CircleButton } from '@/components/CircleButton/CircleButton.jsx';
+import { ActionButton } from '@/components/ActionButton/ActionButton.jsx';
 import { colors } from '@/constants/colors.js';
 import { EditFieldCard } from '@/components/Profile/ProfileEdit/EditFieldCard.jsx';
 import { PhotoEditRow } from '@/components/Profile/ProfileEdit/PhotoEditRow.jsx';
@@ -41,7 +42,7 @@ export function EditProfile() {
 
     const [formData, setFormData] = useState(() => {
         const initialData = {
-            name: auth.user?.telegram_name || '',
+            profile_name: auth.user?.telegram_name || '',
             age: '',
             images: [],
             bio: '',
@@ -67,7 +68,7 @@ export function EditProfile() {
                 console.log('[EditProfile] Loaded profile data:', profileData);
                 
                 const formDataUpdate = {
-                    name: profileData.profile_name || profileData.name || auth.user?.telegram_name || '',
+                    profile_name: profileData.profile_name || auth.user?.telegram_name || '',
                     age: profileData.age?.toString() || '',
                     images: profileData.images || [],
                     bio: profileData.bio || '',
@@ -87,7 +88,7 @@ export function EditProfile() {
             // Mark as initialized whether profileData exists or not (null means no profile yet, which is valid)
             setFormDataInitialized(true);
         }
-    }, [profileData, auth.user?.name]);
+    }, [profileData, auth.user?.telegram_name]);
 
     // Set error from fetch if present
     useEffect(() => {
@@ -227,7 +228,7 @@ export function EditProfile() {
         setSaving(true);
         try {
             const payload = {
-                profile_name: formData.name,
+                profile_name: formData.profile_name,
                 age: formData.age ? parseInt(formData.age) : undefined,
                 bio: formData.bio,
                 gender: formData.gender,
@@ -454,8 +455,8 @@ export function EditProfile() {
                     <EditFieldCard
                         title="Имя!"
                         placeholder="Введите имя"
-                        value={formData.name}
-                        onChange={(e) => handleChange('name', e.target.value)}
+                        value={formData.profile_name}
+                        onChange={(e) => handleChange('profile_name', e.target.value)}
                         style={{
                             width: '45%',
                             position: 'absolute',
@@ -537,31 +538,25 @@ export function EditProfile() {
                 />
 
                 {/* Bottom save button */}
-                <button
-                    onClick={handleSubmit}
-                    disabled={isLoading}
-                    style={{
-                        width: '90%',
-                        marginTop: '2em',
-                        padding: '1em',
-                        backgroundColor: colors.white,
-                        color: bgColor,
-                        border: 'none',
-                        borderRadius: '20px',
-                        fontSize: '1.3em',
-                        fontWeight: '700',
-                        cursor: isLoading ? 'not-allowed' : 'pointer',
-                        position: 'relative',
-                        zIndex: 1,
-                        boxShadow: '8px 10px 0px rgba(0, 0, 0, 0.25)',
-                        opacity: isLoading ? 0.6 : 1,
-                        fontFamily: "'Uni Sans', sans-serif",
-                        fontStyle: 'italic',
-                        letterSpacing: '0.05em'
-                    }}
-                >
-                    {saving ? 'СОХРАНЕНИЕ...' : 'СОХРАНИТЬ'}
-                </button>
+                <div style={{
+                    width: '90%',
+                    marginTop: '2em',
+                    position: 'relative',
+                    zIndex: 1
+                }}>
+                    <ActionButton
+                        onClick={handleSubmit}
+                        disabled={isLoading}
+                        backgroundColor={colors.white}
+                        color={bgColor}
+                        width="100%"
+                        fontSize="1.3em"
+                        borderRadius="20px"
+                        letterSpacing="0.05em"
+                    >
+                        {saving ? 'СОХРАНЕНИЕ...' : 'СОХРАНИТЬ'}
+                    </ActionButton>
+                </div>
             </div>
         </Page>
     );

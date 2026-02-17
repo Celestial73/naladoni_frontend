@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import useEmblaCarousel from 'embla-carousel-react';
 import { colors } from '@/constants/colors.js';
 
-export function ProfileCarousel({ images, name, age, telegram_username }) {
+export function ProfileCarousel({ images, profile_name, age, telegram_username }) {
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [copied, setCopied] = useState(false);
     const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
@@ -97,8 +97,8 @@ export function ProfileCarousel({ images, name, age, telegram_username }) {
                 </div>
             </div>
 
-            {/* Name and Age */}
-            {name && (
+            {/* Profile Name and Age */}
+            {profile_name && (
                 <div style={{
                     position: 'absolute',
                     bottom: telegram_username ? '12%' : '5%',
@@ -112,7 +112,7 @@ export function ProfileCarousel({ images, name, age, telegram_username }) {
                     wordWrap: 'break-word'
                 }}>
                     {(() => {
-                        const words = name.split(' ');
+                        const words = profile_name.split(' ');
                         const lastWord = words.pop();
                         return (
                             <>

@@ -213,7 +213,7 @@ export function EventList({
                                 fontWeight: '600',
                                 color: colors.eventPrimary
                             }}>
-                                {event.attendees?.length || 0}/{event.maxAttendees || '∞'}
+                                {event.attendees?.length || 0}/{event.capacity || '∞'}
                             </div>
                             <div style={{
                                 fontSize: '0.75em',

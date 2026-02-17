@@ -2,53 +2,9 @@ import { useState, useEffect } from 'react';
 import { useDataCache } from '@/context/DataCacheProvider.jsx';
 import { eventsService } from '@/api/services/eventsService.js';
 import { eventActionsService } from '@/api/services/eventActionsService.js';
-import { formatDateToDDMMYYYY } from '@/utils/dateFormatter.js';
 
-/**
- * Transform API event to UI format
- */
-const transformEvent = (apiEvent) => {
-    // Transform participants from new API format (array of {profile, user}) to flat structure
-    let attendees = [];
-    if (apiEvent.participants && Array.isArray(apiEvent.participants)) {
-        attendees = apiEvent.participants.map((participant) => {
-            const profile = participant.profile || {};
-            const user = participant.user || {};
-            return {
-                profile_name: profile.profile_name || user.telegram_name || '',
-                name: profile.profile_name || user.telegram_name || '',
-                age: profile.age,
-                bio: profile.bio || '',
-                images: profile.images || [],
-                image_url: profile.images?.[0] || user.image_url || null,
-                interests: profile.interests || [],
-                custom_fields: profile.custom_fields || [],
-                background_color: profile.background_color,
-                telegram_username: user.telegram_username || null,
-                profile_id: profile._id || profile.id,
-                user_id: user._id || user.id,
-                user: user,
-                profile: profile,
-            };
-        });
-    } else if (apiEvent.attendees && Array.isArray(apiEvent.attendees)) {
-        // Fallback for old format
-        attendees = apiEvent.attendees;
-    }
-
-    return {
-        id: apiEvent.id || apiEvent._id,
-        title: apiEvent.title,
-        date: formatDateToDDMMYYYY(apiEvent.date) || '',
-        location: apiEvent.location,
-        description: apiEvent.description,
-        attendees: attendees,
-        maxAttendees: apiEvent.capacity,
-        image: apiEvent.image || apiEvent.imageUrl || apiEvent.creator_profile?.image_url || null,
-        picture: apiEvent.image || '',
-        creator_profile: apiEvent.creator_profile,
-    };
-};
+// Note: transformEvent is now handled by eventsService.getEvent()
+// This hook no longer needs its own transformation since getEvent() now transforms data
 
 /**
  * Custom hook for managing event detail data
@@ -82,11 +38,11 @@ export function useEventDetail(eventId) {
             try {
                 setLoading(true);
                 setError(null);
+                // getEvent now returns transformed data, no need for manual transformation
                 const result = await eventsService.getEvent(eventId, abortController.signal);
                 
                 if (!abortController.signal.aborted) {
-                    const transformedEvent = transformEvent(result);
-                    setEvent(transformedEvent);
+                    setEvent(result);
                 }
             } catch (err) {
                 if (err.name !== 'AbortError' && err.name !== 'CanceledError') {
@@ -116,9 +72,9 @@ export function useEventDetail(eventId) {
         try {
             setLoading(true);
             setError(null);
+            // getEvent now returns transformed data
             const result = await eventsService.getEvent(eventId);
-            const transformedEvent = transformEvent(result);
-            setEvent(transformedEvent);
+            setEvent(result);
         } catch (err) {
             const errorMsg = err.response?.data?.message || err.message || 'Не удалось загрузить событие';
             setError(errorMsg);

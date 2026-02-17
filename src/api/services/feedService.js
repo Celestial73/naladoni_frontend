@@ -11,48 +11,72 @@ const SERVICE_NAME = 'feedService';
 
 /**
  * Transform API event to UI format
+ * Handles participants structure: {profile (required), user (optional)}
+ * 
  * @param {Object} apiEvent - Event from API
  * @returns {Object} Transformed event for UI
  */
 const transformEvent = (apiEvent) => {
-  // Transform participants from new API format (array of {profile, user}) to flat structure
+  if (!apiEvent) {
+    return null;
+  }
+
+  // Transform participants from API format (array of {profile, user}) to flat structure
+  // profile is always present, user is optional (only when owner views or /events/me endpoint)
   let attendees = [];
   if (apiEvent.participants && Array.isArray(apiEvent.participants)) {
     attendees = apiEvent.participants.map((participant) => {
+      // profile is required, user is optional
       const profile = participant.profile || {};
-      const user = participant.user || {};
+      const user = participant.user || null; // Explicitly null if not present
+      
+      // Extract IDs - profile.id is primary identifier (always present)
+      const profileId = profile.id || profile._id;
+      const userId = user ? (user.id || user._id) : null;
+      
       return {
-        profile_name: profile.profile_name || user.telegram_name || '',
-        name: profile.profile_name || user.telegram_name || '',
+        // Profile data (always available)
+        profile_id: profileId,
+        profile_name: profile.profile_name || '',
         age: profile.age,
         bio: profile.bio || '',
-        images: profile.images || [],
-        image_url: profile.images?.[0] || user.image_url || null,
-        interests: profile.interests || [],
-        custom_fields: profile.custom_fields || [],
+        images: Array.isArray(profile.images) ? profile.images : [],
+        image_url: profile.images?.[0] || null,
+        interests: Array.isArray(profile.interests) ? profile.interests : [],
+        custom_fields: Array.isArray(profile.custom_fields) ? profile.custom_fields : [],
         background_color: profile.background_color,
-        telegram_username: user.telegram_username || null,
-        profile_id: profile._id || profile.id,
-        user_id: user._id || user.id,
+        
+        // User data (optional - may be null)
+        user_id: userId,
+        telegram_username: user?.telegram_username || null,
+        
+        // Fallback name from user if profile name not available
+        // (Note: profile_name should always be present, but user.telegram_name as fallback)
+        profile_name: profile.profile_name || user?.telegram_name || '',
+        
+        // Keep nested objects for backward compatibility (but prefer flat structure)
         user: user,
         profile: profile,
       };
     });
   } else if (apiEvent.attendees && Array.isArray(apiEvent.attendees)) {
-    // Fallback for old format
+    // Fallback for old format (legacy support)
     attendees = apiEvent.attendees;
   }
 
+  // Extract event ID - standardize to 'id'
+  const eventId = apiEvent.id || apiEvent._id;
+  
   return {
-    id: apiEvent.id || apiEvent._id,
-    title: apiEvent.title,
+    id: eventId,
+    title: apiEvent.title || '',
     date: formatDateToDDMMYYYY(apiEvent.date) || '',
-    location: apiEvent.location,
-    description: apiEvent.description,
+    location: apiEvent.location || '',
+    description: apiEvent.description || '',
     attendees: attendees,
-    maxAttendees: apiEvent.capacity,
-    picture: apiEvent.image || null,
-    image: apiEvent.image || apiEvent.imageUrl || apiEvent.creator_profile?.image_url || null,
+    capacity: apiEvent.capacity,
+    picture: apiEvent.image || '', // Legacy field name
+    image: apiEvent.image || apiEvent.creator_profile?.image_url || null,
     creator_profile: apiEvent.creator_profile,
     town: apiEvent.town,
   };

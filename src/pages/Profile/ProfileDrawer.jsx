@@ -11,14 +11,14 @@ import {
 
 export function ProfileDrawer({ profile, onClose }) {
   // Normalize profile data to handle both API format and transformed format
-  const displayName = profile.profile_name || profile.name || '';
+  const profile_name = profile.profile_name || '';
   const age = profile.age;
   const bio = profile.bio;
   const gender = profile.gender;
-  const imageUrl = profile.image_url || profile.imageUrl;
+  const imageUrl = profile.image_url;
   const images = profile.images || (imageUrl ? [imageUrl] : []);
   const interests = profile.interests || [];
-  const customFields = profile.custom_fields || profile.customFields || [];
+  const customFields = profile.custom_fields || [];
   const showBio = profile.showBio !== false; // Default to true if not specified
   const showInterests = profile.showInterests !== false; // Default to true if not specified
   const location = profile.location;
@@ -100,7 +100,7 @@ export function ProfileDrawer({ profile, onClose }) {
               <div style={{ position: 'relative', height: 400 }}>
                 <img
                   src={images[currentImageIndex]}
-                  alt={displayName}
+                            alt={profile_name}
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                 />
 
@@ -180,7 +180,7 @@ export function ProfileDrawer({ profile, onClose }) {
                   background: 'linear-gradient(to top, rgba(0,0,0,0.8), transparent)'
                 }}>
                   <h1 style={{ fontSize: 32, color: 'white', margin: 0, lineHeight: 1.2 }}>
-                    {displayName}{age ? `, ${age}` : ''}
+                    {profile_name}{age ? `, ${age}` : ''}
                   </h1>
                   {location && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8 }}>

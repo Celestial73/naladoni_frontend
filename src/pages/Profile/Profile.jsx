@@ -25,7 +25,7 @@ export function Profile() {
     const { profileData, loading, error } = useProfile();
 
     // Map backend response to component-friendly shapes
-    const name = profileData?.profile_name || profileData?.name || auth.user?.telegram_name || '';
+    const profile_name = profileData?.profile_name || auth.user?.telegram_name || '';
     const age = profileData?.age ?? null;
     const images = profileData?.images || [];
     const bio = profileData?.bio || '';
@@ -181,12 +181,12 @@ export function Profile() {
                         position: 'relative',
                         zIndex: 1
                     }}>
-                        <ProfileCarousel images={images} name={name} age={age} telegram_username={telegram_username} />
+                        <ProfileCarousel images={images} profile_name={profile_name} age={age} telegram_username={telegram_username} />
                     </div>
                 )}
 
-                {/* Fallback when no images — show name/age as text */}
-                {images.length === 0 && name && (
+                {/* Fallback when no images — show profile_name/age as text */}
+                {images.length === 0 && profile_name && (
                     <div style={{
                         position: 'relative',
                         zIndex: 1,
@@ -199,7 +199,7 @@ export function Profile() {
                             fontWeight: '700',
                             textShadow: `0 1px 4px ${colors.shadowText}`
                         }}>
-                            {name}{age != null ? `, ${age}` : ''}
+                            {profile_name}{age != null ? `, ${age}` : ''}
                         </div>
                     </div>
                 )}

@@ -5,6 +5,7 @@ import { Page } from '@/components/Layout/Page.jsx';
 import { HalftoneBackground } from '@/components/HalftoneBackground.jsx';
 import { ErrorMessage } from '@/components/ErrorMessage.jsx';
 import { CircleButton } from '@/components/CircleButton/CircleButton.jsx';
+import { ActionButton } from '@/components/ActionButton/ActionButton.jsx';
 import { EditFieldCard } from '@/components/Profile/ProfileEdit/EditFieldCard.jsx';
 import { TownPicker } from '@/components/TownPicker/TownPicker.jsx';
 import { colors } from '@/constants/colors.js';
@@ -214,7 +215,7 @@ export function CreateEvent() {
       setError('Место проведения обязательно');
       return;
     }
-    if (!formData.maxAttendees || parseInt(formData.maxAttendees) < 1) {
+    if (!formData.capacity || parseInt(formData.capacity) < 1) {
       setError('Максимальное количество участников должно быть не менее 1');
       return;
     }
@@ -235,7 +236,7 @@ export function CreateEvent() {
         town: formData.town.trim(),
         location: formData.location.trim(),
         date: dateISO,
-        capacity: parseInt(formData.maxAttendees),
+        capacity: parseInt(formData.capacity),
       };
 
       // Add optional fields if they have values
@@ -526,8 +527,8 @@ export function CreateEvent() {
             <input
               type="number"
               placeholder="Введите количество"
-              value={formData.maxAttendees}
-              onChange={(e) => handleChange('maxAttendees', e.target.value)}
+              value={formData.capacity}
+              onChange={(e) => handleChange('capacity', e.target.value)}
               min="1"
               style={{
                 width: '100%',
@@ -721,31 +722,25 @@ export function CreateEvent() {
         </div>
 
         {/* Bottom save button */}
-        <button
-          onClick={handleSubmit}
-          disabled={isLoading}
-          style={{
-            width: '90%',
-            marginTop: '2em',
-            padding: '1em',
-            backgroundColor: colors.white,
-            color: colors.eventPrimary,
-            border: 'none',
-            borderRadius: '20px',
-            fontSize: '1.3em',
-            fontWeight: '700',
-            cursor: isLoading ? 'not-allowed' : 'pointer',
-            position: 'relative',
-            zIndex: 1,
-            boxShadow: '8px 10px 0px rgba(0, 0, 0, 0.25)',
-            opacity: isLoading ? 0.6 : 1,
-            fontFamily: "'Uni Sans', sans-serif",
-            fontStyle: 'italic',
-            letterSpacing: '0.05em'
-          }}
-        >
-          {loading ? (isEditMode ? 'ОБНОВЛЕНИЕ...' : 'СОЗДАНИЕ...') : (isEditMode ? 'ОБНОВИТЬ' : 'СОЗДАТЬ')}
-        </button>
+        <div style={{
+          width: '90%',
+          marginTop: '2em',
+          position: 'relative',
+          zIndex: 1
+        }}>
+          <ActionButton
+            onClick={handleSubmit}
+            disabled={isLoading}
+            backgroundColor={colors.white}
+            color={colors.eventPrimary}
+            width="100%"
+            fontSize="1.3em"
+            borderRadius="20px"
+            letterSpacing="0.05em"
+          >
+            {loading ? (isEditMode ? 'ОБНОВЛЕНИЕ...' : 'СОЗДАНИЕ...') : (isEditMode ? 'ОБНОВИТЬ' : 'СОЗДАТЬ')}
+          </ActionButton>
+        </div>
       </div>
     </Page>
   );

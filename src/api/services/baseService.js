@@ -56,7 +56,7 @@ export const baseServiceConfig = {
    * Creates a request config object with signal support
    * @param {AbortSignal} [signal] - Optional AbortSignal
    * @param {Object} [additionalConfig] - Additional axios config
-   * @returns {Object} Axios reqwuest config
+   * @returns {Object} Axios request config
    */
   createRequestConfig: (signal, additionalConfig = {}) => {
     return {
