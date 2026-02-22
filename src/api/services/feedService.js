@@ -71,10 +71,8 @@ const transformEvent = (apiEvent) => {
     id: eventId,
     title: apiEvent.title || '',
     date: formatDateToDDMMYYYY(apiEvent.date) || '',
-    location: apiEvent.location || '',
     description: apiEvent.description || '',
     attendees: attendees,
-    capacity: apiEvent.capacity,
     picture: apiEvent.image || '', // Legacy field name
     image: apiEvent.image || apiEvent.creator_profile?.image_url || null,
     creator_profile: apiEvent.creator_profile,

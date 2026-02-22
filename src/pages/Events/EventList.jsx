@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Calendar, MapPin, Users, Bell } from 'lucide-react';
+import { Calendar, Users, Bell } from 'lucide-react';
 import { colors } from '@/constants/colors.js';
 
 /**
@@ -174,24 +174,6 @@ export function EventList({
                             <Calendar size={14} color={colors.eventPrimary} />
                             <span>{event.date || 'Дата не указана'}</span>
                         </div>
-                        {event.location && (
-                            <div style={{
-                                fontSize: '0.85em',
-                                color: colors.textLight,
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.4em',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap'
-                            }}>
-                                <MapPin size={14} color={colors.eventPrimary} />
-                                <span>
-                                    {event.location}
-                                    {event.creator_profile?.profile_name && ` • ${event.creator_profile.profile_name}`}
-                                </span>
-                            </div>
-                        )}
                     </div>
 
                     {/* Attendees Count and Pending Requests */}
@@ -213,7 +195,7 @@ export function EventList({
                                 fontWeight: '600',
                                 color: colors.eventPrimary
                             }}>
-                                {event.attendees?.length || 0}/{event.capacity || '∞'}
+                                {event.attendees?.length || 0}
                             </div>
                             <div style={{
                                 fontSize: '0.75em',

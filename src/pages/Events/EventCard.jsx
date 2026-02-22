@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, MapPin, X } from "lucide-react";
+import { Calendar, X } from "lucide-react";
 import { colors } from '@/constants/colors.js';
 import { getParticipantId, getParticipantName, getParticipantImage, getParticipantUserId } from '@/utils/participantUtils.js';
 
@@ -25,7 +25,7 @@ export function EventCard({
     isOwner = false,
 }) {
     const navigate = useNavigate();
-    const attendeesCount = event.attendees?.length ?? event.capacity ?? 0;
+    const attendeesCount = event.attendees?.length ?? 0;
     
     // Handle attendee click - navigate to user profile page
     const handleAttendeeClick = (attendee) => {
@@ -200,18 +200,12 @@ export function EventCard({
                     </div>
                 )}
 
-                {/* Dense Meta Info (Date, Location) */}
+                {/* Dense Meta Info (Date) */}
                 <div style={{ padding: '0 16px', marginBottom: 12, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                     {event.date && (
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#f7f7f7', padding: '6px 12px', borderRadius: 12, fontSize: 13, fontWeight: 500 }}>
                             <Calendar size={16} color={colors.feedPrimary} />
                             <span style={{ color: '#333' }}>{event.date}</span>
-                        </div>
-                    )}
-                    {event.location && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#f7f7f7', padding: '6px 12px', borderRadius: 12, fontSize: 13, fontWeight: 500, maxWidth: '100%' }}>
-                            <MapPin size={16} color={colors.feedPrimary} />
-                            <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: '#333' }}>{event.location}</span>
                         </div>
                     )}
                 </div>

@@ -12,7 +12,7 @@ import townHashMapping from '@/data/townHashMapping.json';
 import { formatDateToAPI } from '@/utils/dateFormatter.js';
 import { useDataCache } from '@/context/DataCacheProvider.jsx';
 import dislikeIcon from '../../../assets/icons/dislike (cockroach).svg';
-import messageIcon from '../../../assets/icons/message (writing).svg';
+import messageIcon from '../../../assets/icons/message (hand).svg';
 import likeIcon from '../../../assets/icons/like (bison).svg';
 
 

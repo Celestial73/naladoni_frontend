@@ -33,8 +33,6 @@ const transformToFormData = (event) => {
         title: event.title || '',
         date: dateStr,
         town: event.town || '',
-        location: event.location || '',
-        capacity: event.capacity?.toString() || '',
         description: event.description || '',
         picture: event.image || '',
     };
@@ -53,8 +51,6 @@ export function useCreateEvent(eventId) {
         title: '',
         date: '',
         town: '',
-        location: '',
-        capacity: '',
         description: '',
         picture: '',
     });

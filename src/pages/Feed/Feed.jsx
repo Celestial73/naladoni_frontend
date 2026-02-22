@@ -10,7 +10,7 @@ import { FeedFilters } from '@/components/FeedFilters/FeedFilters.jsx';
 import { colors } from '@/constants/colors.js';
 import { useFeed } from '@/hooks/useFeed.js';
 import dislikeIcon from '../../../assets/icons/dislike (cockroach).svg';
-import messageIcon from '../../../assets/icons/message (writing).svg';
+import messageIcon from '../../../assets/icons/message (hand).svg';
 import likeIcon from '../../../assets/icons/like (bison).svg';
 
 

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Edit, Trash2, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Edit, Trash2 } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
 import { Page } from '@/components/Layout/Page.jsx';
 import { HalftoneBackground } from '@/components/HalftoneBackground.jsx';
@@ -13,16 +13,15 @@ import { ActionButton } from '@/components/ActionButton/ActionButton.jsx';
 import { PendingRequestsList } from '@/components/Events/PendingRequestsList.jsx';
 import { colors } from '@/constants/colors.js';
 import { eventsService } from '@/api/services/eventsService.js';
-import { eventActionsService } from '@/api/services/eventActionsService.js';
 import { useEventDetail } from '@/hooks/useEventDetail.js';
 import { useDataCache } from '@/context/DataCacheProvider.jsx';
-import { formatDateToDDMMYYYY } from '@/utils/dateFormatter.js';
 
 export function EventDetail() {
     const navigate = useNavigate();
     const { id } = useParams();
-    const { updateEventsCache, eventsCache, clearEventsCache } = useDataCache();
+    const { updateEventsCache, eventsCache } = useDataCache();
     const [selectedAttendee, setSelectedAttendee] = useState(null);
+    const [actionError, setActionError] = useState(null);
     
     const {
         event,
@@ -33,7 +32,6 @@ export function EventDetail() {
         error,
         errorRequests,
         processingAction,
-        refetchEvent,
         handleAcceptRequest: handleAcceptRequestFromHook,
         handleRejectRequest: handleRejectRequestFromHook,
         handleDeleteParticipant: handleDeleteParticipantFromHook
@@ -93,6 +91,7 @@ export function EventDetail() {
 
     const handleDeleteEvent = async () => {
         if (!event?.id) return;
+        setActionError(null);
         
         if (!window.confirm('Вы уверены, что хотите удалить это событие?')) {
             return;
@@ -102,12 +101,13 @@ export function EventDetail() {
             await eventsService.deleteEvent(event.id);
             navigate('/events');
         } catch (err) {
-            setError(err.message || 'Не удалось удалить событие');
+            setActionError(err.message || 'Не удалось удалить событие');
         }
     };
 
     const handleLeaveEvent = async () => {
         if (!event?.id) return;
+        setActionError(null);
         
         if (!window.confirm('Вы уверены, что хотите покинуть это событие?')) {
             return;
@@ -122,73 +122,7 @@ export function EventDetail() {
             });
             navigate('/events');
         } catch (err) {
-            setError(err.message || 'Не удалось покинуть событие');
-        }
-    };
-
-    const handleRefresh = async () => {
-        if (!event?.id) return;
-        
-        setError(null);
-        setErrorRequests(null);
-        setLoading(true);
-        setLoadingRequests(true);
-        
-        try {
-            const [eventData, requestsData] = await Promise.all([
-                eventsService.getEvent(event.id),
-                isOwner ? eventActionsService.getPendingLikesForEvent(event.id) : Promise.resolve([])
-            ]);
-            
-            // Transform participants from new API format (array of {profile, user}) to flat structure
-            let attendees = [];
-            if (eventData.participants && Array.isArray(eventData.participants)) {
-                attendees = eventData.participants.map((participant) => {
-                    const profile = participant.profile || {};
-                    const user = participant.user || {};
-                    return {
-                        profile_name: profile.profile_name || user.telegram_name || '',
-                        age: profile.age,
-                        bio: profile.bio || '',
-                        images: profile.images || [],
-                        image_url: profile.images?.[0] || user.image_url || null,
-                        interests: profile.interests || [],
-                        custom_fields: profile.custom_fields || [],
-                        background_color: profile.background_color,
-                        telegram_username: user.telegram_username || null,
-                        profile_id: profile._id || profile.id,
-                        user_id: user._id || user.id,
-                        user: user,
-                        profile: profile,
-                    };
-                });
-            } else if (eventData.attendees && Array.isArray(eventData.attendees)) {
-                // Fallback for old format
-                attendees = eventData.attendees;
-            }
-            
-            const transformedEvent = {
-                id: eventData.id || eventData._id,
-                title: eventData.title,
-                date: formatDateToDDMMYYYY(eventData.date) || '',
-                location: eventData.location,
-                description: eventData.description,
-                attendees: attendees,
-                capacity: eventData.capacity,
-                image: eventData.image || eventData.creator_profile?.image_url || null,
-                picture: eventData.image || '',
-                creator_profile: eventData.creator_profile,
-            };
-            
-            setEvent(transformedEvent);
-            if (isOwner) {
-                setPendingRequests(requestsData || []);
-            }
-        } catch (err) {
-            setError(err.message || 'Не удалось обновить данные');
-        } finally {
-            setLoading(false);
-            setLoadingRequests(false);
+            setActionError(err.message || 'Не удалось покинуть событие');
         }
     };
 
@@ -281,15 +215,6 @@ export function EventDetail() {
                 {isOwner && (
                     <>
                         <CircleButton
-                            icon={<RefreshCw size={22} color={colors.eventPrimary} />}
-                            onClick={handleRefresh}
-                            disabled={loading || loadingRequests}
-                            position="custom"
-                            top="1em"
-                            right="calc(1em + 2 * 50px + 2 * 0.75em)"
-                            size={50}
-                        />
-                        <CircleButton
                             icon={<Edit size={22} color={colors.eventPrimary} />}
                             onClick={() => navigate(`/events/edit/${event.id}`)}
                             position="custom"
@@ -309,7 +234,7 @@ export function EventDetail() {
                 )}
 
                 {/* Error message */}
-                <ErrorMessage message={error} marginTop="4em" />
+                <ErrorMessage message={actionError || error} marginTop="4em" />
 
                 {/* Event Information Card */}
                 <div style={{

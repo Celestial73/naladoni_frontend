@@ -19,7 +19,7 @@ export function MainLayout() {
           )}
         </AnimatePresence>
       </div>
-      <div style={{ height: '80px', position: 'relative', zIndex: 100 }}>
+      <div style={{ height: '84px', position: 'relative', zIndex: 100 }}>
         <BottomNav />
       </div>
     </div>

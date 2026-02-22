@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { Calendar, MapPin, Users, X } from "lucide-react";
+import { Calendar, Users, X } from "lucide-react";
 import { colors } from '@/constants/colors.js';
 import { getParticipantId, getParticipantName, getParticipantImage, getParticipantUserId } from '@/utils/participantUtils.js';
 
@@ -12,7 +12,7 @@ export function EventInformation({
     isOwner = false,
 }) {
     const navigate = useNavigate();
-    const attendeesCount = event.attendees?.length ?? event.capacity ?? 0;
+    const attendeesCount = event.attendees?.length ?? 0;
     
     // Handle attendee click - navigate to user profile page
     const handleAttendeeClick = (attendee) => {
@@ -58,7 +58,7 @@ export function EventInformation({
                     <div style={{ fontSize: 18, fontWeight: 600, color: '#333' }}>{event.title}</div>
                 </div>
 
-                {/* Date and Location */}
+                {/* Date and attendees */}
                 <div>
                     {event.date && (
                         <div style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px solid #eee' }}>
@@ -66,15 +66,6 @@ export function EventInformation({
                             <div style={{ flex: 1 }}>
                                 <div style={{ fontSize: 12, color: '#999', marginBottom: 2 }}>Date</div>
                                 <div style={{ fontSize: 15, color: '#333' }}>{event.date}</div>
-                            </div>
-                        </div>
-                    )}
-                    {event.location && (
-                        <div style={{ padding: '12px 16px', display: 'flex', alignItems: 'flex-start', gap: 12, borderBottom: '1px solid #eee' }}>
-                            <MapPin size={20} color={colors.feedPrimary} style={{ flexShrink: 0, marginTop: 2 }} />
-                            <div style={{ flex: 1 }}>
-                                <div style={{ fontSize: 12, color: '#999', marginBottom: 2 }}>Location</div>
-                                <div style={{ fontSize: 15, color: '#333', lineHeight: '1.4' }}>{event.location}</div>
                             </div>
                         </div>
                     )}

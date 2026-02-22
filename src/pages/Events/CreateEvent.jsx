@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Save, Calendar, MapPin, Users, Image as ImageIcon, Upload, X, Loader } from 'lucide-react';
+import { ArrowLeft, Save, Calendar, MapPin, Image as ImageIcon, Upload, X, Loader } from 'lucide-react';
 import { Page } from '@/components/Layout/Page.jsx';
 import { HalftoneBackground } from '@/components/HalftoneBackground.jsx';
 import { ErrorMessage } from '@/components/ErrorMessage.jsx';
@@ -199,49 +199,36 @@ export function CreateEvent() {
       setError('Название события обязательно');
       return;
     }
-    if (!formData.date.trim()) {
-      setError('Дата обязательна');
-      return;
-    }
-    if (!formData.town.trim()) {
-      setError('Город обязателен');
-      return;
-    }
-    if (!RUSSIAN_CITIES.includes(formData.town)) {
+    if (formData.town.trim() && !RUSSIAN_CITIES.includes(formData.town)) {
       setError('Пожалуйста, выберите город из списка');
       return;
     }
-    if (!formData.location.trim()) {
-      setError('Место проведения обязательно');
-      return;
-    }
-    if (!formData.capacity || parseInt(formData.capacity) < 1) {
-      setError('Максимальное количество участников должно быть не менее 1');
-      return;
-    }
-
     setLoading(true);
     try {
-      // Convert date to ISO 8601 date-only format (YYYY-MM-DD)
-      const dateISO = convertDateToISO8601(formData.date);
-      if (!dateISO) {
-        setError('Неверный формат даты. Пожалуйста, используйте корректную дату.');
-        setLoading(false);
-        return;
-      }
-
       // Prepare payload
       const payload = {
         title: formData.title.trim(),
-        town: formData.town.trim(),
-        location: formData.location.trim(),
-        date: dateISO,
-        capacity: parseInt(formData.capacity),
       };
+
+      // Date is optional, but must be valid if provided
+      if (formData.date.trim()) {
+        const dateISO = convertDateToISO8601(formData.date);
+        if (!dateISO) {
+          setError('Неверный формат даты. Пожалуйста, используйте корректную дату.');
+          setLoading(false);
+          return;
+        }
+        payload.date = dateISO;
+      }
 
       // Add optional fields if they have values
       if (formData.description.trim()) {
         payload.description = formData.description.trim();
+      }
+
+      // Town is optional, but must be selected from known values if provided
+      if (formData.town.trim()) {
+        payload.town = formData.town.trim();
       }
 
       let createdEvent;
@@ -435,7 +422,7 @@ export function CreateEvent() {
               gap: '0.5em'
             }}>
               <Calendar size={18} color={colors.eventPrimary} />
-              Дата события *
+              Дата события
             </div>
             <input
               type="date"
@@ -468,78 +455,11 @@ export function CreateEvent() {
               gap: '0.5em'
             }}>
               <MapPin size={18} color={colors.eventPrimary} />
-              Город *
+              Город
             </div>
             <TownPicker
               value={formData.town}
               onChange={(value) => handleChange('town', value)}
-            />
-          </div>
-
-          {/* Location */}
-          <div style={{ marginBottom: '1.5em' }}>
-            <div style={{
-              fontSize: '1em',
-              fontWeight: '600',
-              fontFamily: "'Montserrat', sans-serif",
-              color: colors.textDark,
-              marginBottom: '0.5em',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5em'
-            }}>
-              <MapPin size={18} color={colors.eventPrimary} />
-              Место проведения *
-            </div>
-            <input
-              type="text"
-              placeholder="Введите место проведения"
-              value={formData.location}
-              onChange={(e) => handleChange('location', e.target.value)}
-              style={{
-                width: '100%',
-                padding: '0.75em',
-                boxSizing: 'border-box',
-                border: `2px solid ${colors.borderGrey}`,
-                borderRadius: '12px',
-                fontSize: '0.95em',
-                outline: 'none',
-                fontFamily: 'inherit'
-              }}
-            />
-          </div>
-
-          {/* Max Attendees */}
-          <div style={{ marginBottom: '1.5em' }}>
-            <div style={{
-              fontSize: '1em',
-              fontWeight: '600',
-              fontFamily: "'Montserrat', sans-serif",
-              color: colors.textDark,
-              marginBottom: '0.5em',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5em'
-            }}>
-              <Users size={18} color={colors.eventPrimary} />
-              Максимальное количество участников *
-            </div>
-            <input
-              type="number"
-              placeholder="Введите количество"
-              value={formData.capacity}
-              onChange={(e) => handleChange('capacity', e.target.value)}
-              min="1"
-              style={{
-                width: '100%',
-                padding: '0.75em',
-                boxSizing: 'border-box',
-                border: `2px solid ${colors.borderGrey}`,
-                borderRadius: '12px',
-                fontSize: '0.95em',
-                outline: 'none',
-                fontFamily: 'inherit'
-              }}
             />
           </div>
 
@@ -552,7 +472,7 @@ export function CreateEvent() {
               color: colors.textDark,
               marginBottom: '0.5em'
             }}>
-              Описание (необязательно)
+              Описание 
             </div>
             <div style={{
               display: 'flex',
@@ -609,7 +529,7 @@ export function CreateEvent() {
             color: colors.textDark,
             marginBottom: '1em'
           }}>
-            Изображение события (необязательно)
+            Картинка 
           </div>
 
           <div style={{
