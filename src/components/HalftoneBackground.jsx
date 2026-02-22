@@ -1,6 +1,6 @@
-import { useMemo } from 'react';
+import { memo, useMemo } from 'react';
 
-export function HalftoneBackground({ 
+export const HalftoneBackground = memo(function HalftoneBackground({ 
     color = 'rgba(0,0,0,0.15)', 
     spacing = 10, 
     maxRadius = 6, 
@@ -373,4 +373,4 @@ export function HalftoneBackground({
             </svg>
         </div>
     );
-}
+});

@@ -1,6 +1,16 @@
 import { colors } from '@/constants/colors.js';
 
-export function EditFieldCard({ title, placeholder, value, onChange, style, flipped }) {
+export function EditFieldCard({
+    title,
+    placeholder,
+    value,
+    onChange,
+    style,
+    flipped,
+    inputType = 'text',
+    inputMode,
+    pattern,
+}) {
     return (
         <div style={{
             backgroundColor: colors.white,
@@ -22,10 +32,12 @@ export function EditFieldCard({ title, placeholder, value, onChange, style, flip
                 {title}
             </div>
             <input
-                type="text"
+                type={inputType}
                 placeholder={placeholder}
                 value={value}
                 onChange={onChange}
+                inputMode={inputMode}
+                pattern={pattern}
                 style={{
                     width: '100%',
                     padding: '0.5em',

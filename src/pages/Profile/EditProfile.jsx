@@ -8,6 +8,7 @@ import { colors } from '@/constants/colors.js';
 import { EditFieldCard } from '@/components/Profile/ProfileEdit/EditFieldCard.jsx';
 import { PhotoEditRow } from '@/components/Profile/ProfileEdit/PhotoEditRow.jsx';
 import { EditInfoCard } from '@/components/Profile/ProfileEdit/EditInfoCard.jsx';
+import { ValidationPopup } from '@/components/Profile/ProfileEdit/ValidationPopup.jsx';
 import { SectionTitle } from '@/pages/Events/SectionTitle.jsx';
 import useAuth from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile.js';
@@ -38,6 +39,7 @@ export function EditProfile() {
     const [uploadingImages, setUploadingImages] = useState(false);
     const [deletingImages, setDeletingImages] = useState(false);
     const [error, setError] = useState(null);
+    const [validationPopupMessage, setValidationPopupMessage] = useState('');
     const [formDataInitialized, setFormDataInitialized] = useState(false);
 
     const [formData, setFormData] = useState(() => {
@@ -101,6 +103,12 @@ export function EditProfile() {
     const handleChange = (field, value) => {
         setFormData(prev => ({ ...prev, [field]: value }));
         setError(null);
+        setValidationPopupMessage('');
+    };
+
+    const showValidationPopup = (message) => {
+        setError(message);
+        setValidationPopupMessage(message);
     };
 
     // --- Image handlers ---
@@ -224,18 +232,45 @@ export function EditProfile() {
 
     // --- Submit handler ---
     const handleSubmit = async () => {
+        const trimmedName = formData.profile_name.trim();
+        const trimmedAge = formData.age.toString().trim();
+        const hasAtLeastOnePhoto = Array.isArray(formData.images) && formData.images.length > 0;
+
+        if (!trimmedName) {
+            showValidationPopup('Вы не заполнили имя. Как другие люди будут к вам обращаться? "Извините?" или "Хеллоу?". В этом нет никакого смысла, понимаете? Иногда мне кажется что вам плевать на то получится ли у нас крутое приложение для общения и взаимодействия между людьми.');
+            return;
+        }
+
+        if (!trimmedAge) {
+            showValidationPopup('Вы не заполнили возраст. Заполните возраст. Достаточно очевидно, что это поле обязательное. Если вы не заполните возраст,анкета будет неполной и не будет понятно, сколько вам лет. Это так важно, чтобы другие люди знали, с кем они знакомятся. Если вы не хотите указывать, к сожалению вы должны покинуть приложение НАЛАДОНИ навсегда. Мы понимаем, что это может быть непривычно, но это помогает нам сохранить профиль более актуальным и полезным для других пользователей.');
+            return;
+        }
+
+        if (!hasAtLeastOnePhoto) {
+            showValidationPopup('Добавьте хотя бы одну фотографию, чтобы люди видели, с кем знакомятся.');
+            return;
+        }
+
+        const hasInvalidCustomField = formData.customFields.some(
+            (field) => !field.title?.trim() || !field.value?.trim()
+        );
+        if (hasInvalidCustomField) {
+            showValidationPopup('Заполните описание и название для каждого дополнительного поля. Типа, мне кажется достаточно тупо будет если что то останется без названия или без описания. Ну типа например назвать поле "любимая еда" и ничего не написать. Нет, это не работает. Или ещё написать "180" и не указать что это число значит. Мы пытаемся сделать в этом приложении какую-то дружелюбную среду для общения и взаимодействия между людьми. Если вы не хотите этого, пожалуйста, покиньте приложение НАЛАДОНИ.');
+            return;
+        }
+
         setError(null);
         setSaving(true);
         try {
             const payload = {
-                profile_name: formData.profile_name,
-                age: formData.age ? parseInt(formData.age) : undefined,
+                profile_name: trimmedName,
+                age: parseInt(trimmedAge, 10),
                 bio: formData.bio,
                 gender: formData.gender,
                 interests: formData.interests.filter(i => i.trim() !== ''),
                 custom_fields: formData.customFields.map(field => ({
-                    title: field.title,
-                    value: field.value,
+                    title: field.title.trim(),
+                    value: field.value.trim(),
                 })),
                 background_color: formData.backgroundColor,
             };
@@ -469,7 +504,9 @@ export function EditProfile() {
                         title="Возраст!"
                         placeholder="Введите возраст"
                         value={formData.age}
-                        onChange={(e) => handleChange('age', e.target.value)}
+                        onChange={(e) => handleChange('age', e.target.value.replace(/\D/g, ''))}
+                        inputMode="numeric"
+                        pattern="[0-9]*"
                         flipped
                         style={{
                             width: '45%',
@@ -488,8 +525,8 @@ export function EditProfile() {
                         position: 'relative',
                         zIndex: 1
                     }}>
-                        <SectionTitle align="left" fontSize="3em">
-                            ИЗОБРАЖЕНИЯ:
+                        <SectionTitle align="left" fontSize="2em">
+                            ФОТКИ:
                         </SectionTitle>
                     </div>
 
@@ -558,6 +595,12 @@ export function EditProfile() {
                     </ActionButton>
                 </div>
             </div>
+            <ValidationPopup
+                isOpen={Boolean(validationPopupMessage)}
+                message={validationPopupMessage}
+                onClose={() => setValidationPopupMessage('')}
+                accentColor={bgColor}
+            />
         </Page>
     );
 }
