@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { Page } from '@/components/Layout/Page.jsx';
 import { ProfileCarousel } from '@/components/Profile/ProfileCarousel.jsx';
 import { ProfileInfoCard } from '@/components/Profile/ProfileInfoCard.jsx';
@@ -156,7 +157,11 @@ export function Profile() {
 
                 {/* Inline error banner (profile loaded but with a warning) */}
                 {error && profileData && (
-                    <div style={{
+                    <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.2, delay: 0.05 }}
+                        style={{
                         position: 'relative',
                         zIndex: 1,
                         width: '90%',
@@ -169,12 +174,16 @@ export function Profile() {
                         textAlign: 'center'
                     }}>
                         {error}
-                    </div>
+                    </motion.div>
                 )}
 
                 {/* Carousel Container */}
                 {images.length > 0 && (
-                    <div style={{
+                    <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.2, delay: 0.1 }}
+                        style={{
                         width: '100%',
                         maxWidth: '70%',
                         marginTop: '2%',
@@ -182,12 +191,16 @@ export function Profile() {
                         zIndex: 1
                     }}>
                         <ProfileCarousel images={images} profile_name={profile_name} age={age} telegram_username={telegram_username} />
-                    </div>
+                    </motion.div>
                 )}
 
                 {/* Fallback when no images — show profile_name/age as text */}
                 {images.length === 0 && profile_name && (
-                    <div style={{
+                    <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.2, delay: 0.1 }}
+                        style={{
                         position: 'relative',
                         zIndex: 1,
                         marginTop: '10%',
@@ -201,12 +214,16 @@ export function Profile() {
                         }}>
                             {profile_name}{age != null ? `, ${age}` : ''}
                         </div>
-                    </div>
+                    </motion.div>
                 )}
 
                 {/* Info Card */}
                 {showInfoCard && (
-                    <div style={{
+                    <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.2, delay: 0.15 }}
+                        style={{
                         width: '100%',
                         marginTop: '5%',
                         marginBottom: '5%',
@@ -221,7 +238,7 @@ export function Profile() {
                             interests={showInterests ? interests : []}
                             accentColor={bgColor}
                         />
-                    </div>
+                    </motion.div>
                 )}
 
             </div>

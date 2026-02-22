@@ -149,6 +149,10 @@ export function Feed() {
     };
 
     const isActionDisabled = loading || animating;
+    const pageRevealTransition = (delay = 0) => ({
+        duration: 0.2,
+        delay
+    });
 
     return (
         <Page>
@@ -172,25 +176,48 @@ export function Feed() {
 
 
                 {/* Filter toggle and filters card */}
-                <FeedFilters
-                    filtersEnabled={filtersEnabled}
-                    onToggleFilters={() => setFiltersEnabled(!filtersEnabled)}
-                    town={town}
-                    onTownChange={handleTownChange}
-                    onTownBlur={handleTownBlur}
-                    startDate={startDate}
-                    endDate={endDate}
-                    onStartDateChange={handleStartDateChange}
-                    onEndDateChange={handleEndDateChange}
-                    onDateRangeClear={handleDateRangeClear}
-                    onDateRangeClose={handleDateRangeClose}
-                />
+                <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={pageRevealTransition(0.05)}
+                    style={{
+                        width: '100%',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center'
+                    }}
+                >
+                    <FeedFilters
+                        filtersEnabled={filtersEnabled}
+                        onToggleFilters={() => setFiltersEnabled(!filtersEnabled)}
+                        town={town}
+                        onTownChange={handleTownChange}
+                        onTownBlur={handleTownBlur}
+                        startDate={startDate}
+                        endDate={endDate}
+                        onStartDateChange={handleStartDateChange}
+                        onEndDateChange={handleEndDateChange}
+                        onDateRangeClear={handleDateRangeClear}
+                        onDateRangeClose={handleDateRangeClose}
+                    />
+                </motion.div>
 
                 {/* Error message */}
-                <ErrorMessage message={error} />
+                <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={pageRevealTransition(0.1)}
+                    style={{ width: '100%' }}
+                >
+                    <ErrorMessage message={error} />
+                </motion.div>
 
                 {/* Main card area */}
-                <div style={{
+                <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={pageRevealTransition(0.15)}
+                    style={{
                     width: '100%',
                     flex: 1,
                     display: 'flex',
@@ -218,6 +245,7 @@ export function Feed() {
                                         key={currentEvent.id}
                                         initial={{
                                             opacity: 0,
+                                            y: 10,
                                             ...(swipeDirection ? {
                                                 x: swipeDirection === 'left' ? 120 : -120,
                                                 rotate: swipeDirection === 'left' ? 12 : -12
@@ -225,11 +253,13 @@ export function Feed() {
                                         }}
                                         animate={{
                                             opacity: 1,
+                                            y: 0,
                                             x: 0,
                                             rotate: 0
                                         }}
                                         exit={{
                                             opacity: 0,
+                                            y: -10,
                                             ...(swipeDirection ? {
                                                 x: swipeDirection === 'left' ? -120 : 120,
                                                 rotate: swipeDirection === 'left' ? -12 : 12
@@ -237,7 +267,8 @@ export function Feed() {
                                         }}
                                         transition={{
                                             duration: 0.3,
-                                            ease: 'easeOut'
+                                            ease: 'easeOut',
+                                            delay: swipeDirection ? 0 : 0.05
                                         }}
                                         style={{
                                             width: '100%',
@@ -256,11 +287,15 @@ export function Feed() {
 
                         </div>
                     )}
-                </div>
+                </motion.div>
 
                 {/* Fixed action buttons above navbar */}
                 {currentEvent && (
-                    <div style={{
+                    <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={pageRevealTransition(0.2)}
+                        style={{
                         position: 'fixed',
                         bottom: '130px',
                         left: 0,
@@ -343,7 +378,7 @@ export function Feed() {
                         >
                             <img src={likeIcon} alt="Like" style={{ width: '44px', height: '44px' }} />
                         </button>
-                    </div>
+                    </motion.div>
                 )}
 
                 {/* Message Popup */}

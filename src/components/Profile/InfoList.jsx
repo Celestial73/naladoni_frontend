@@ -1,4 +1,5 @@
 import { colors } from '@/constants/colors.js';
+import { motion } from 'framer-motion';
 
 export function InfoList({ items }) {
     return (
@@ -8,8 +9,11 @@ export function InfoList({ items }) {
                 flexDirection: 'column',
             }}>
                 {items.map((item, index, arr) => (
-                    <div
+                    <motion.div
                         key={index}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.2, delay: index * 0.05 }}
                         style={{
                             display: 'flex',
                             alignItems: 'center',
@@ -28,7 +32,7 @@ export function InfoList({ items }) {
                                 {item.icon}
                             </div>
                         )}
-                    </div>
+                    </motion.div>
                 ))}
             </div>
         </div>
